@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
+  ChevronDown,
   Download,
   ExternalLink,
   Github,
@@ -305,6 +306,7 @@ function EvidenceCarousel() {
 
 function App() {
   const main = useRef<HTMLElement>(null)
+  const [expandedProject, setExpandedProject] = useState<string | null>(projects[0].name)
 
   useGSAP(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -326,7 +328,7 @@ function App() {
       })
     })
 
-    gsap.utils.toArray<HTMLElement>('.project-image svg').forEach((visual) => {
+    gsap.utils.toArray<HTMLElement>('.project-tile-visual svg').forEach((visual) => {
       gsap.fromTo(
         visual,
         { scale: 0.9, opacity: 0.6 },
@@ -342,22 +344,6 @@ function App() {
           },
         },
       )
-    })
-
-    const cards = gsap.utils.toArray<HTMLElement>('.project-card')
-    cards.forEach((card, index) => {
-      if (index === cards.length - 1) return
-      gsap.to(card, {
-        scale: 0.92 + index * 0.015,
-        opacity: 0.48,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: card,
-          start: 'top 15%',
-          end: 'bottom 8%',
-          scrub: true,
-        },
-      })
     })
 
     gsap.fromTo(
@@ -391,6 +377,15 @@ function App() {
       })
     })
   }, { scope: main })
+
+  // Expanding/collapsing a project tile shifts every section below it, which
+  // leaves later ScrollTriggers (the pinned experience heading) measuring
+  // against stale positions until the next resize. Refresh once the CSS
+  // grid-row transition on the panel has finished.
+  useEffect(() => {
+    const id = window.setTimeout(() => ScrollTrigger.refresh(), 360)
+    return () => window.clearTimeout(id)
+  }, [expandedProject])
 
   return (
     <main ref={main} id="top" className="page-shell">
@@ -491,58 +486,84 @@ function App() {
             <p className="eyebrow light"><span /> Selected work</p>
             <h2>Things I built.</h2>
           </div>
-          <p>Four projects taken from an idea to working software - with the numbers that show they actually work.</p>
+          <p>Five projects taken from an idea to working software - with the numbers that show they actually work.</p>
         </div>
-        <div className="project-stack">
-          {projects.map((project, index) => (
-            <article className={`project-card project-${project.tone}`} key={project.name} style={{ zIndex: index + 1 }}>
-              <div className="project-copy">
-                <div className="project-index">{String(index + 1).padStart(2, '0')}</div>
-                <p>{project.kicker}</p>
-                <h3>{project.name}</h3>
-                <span>{project.description}</span>
-                <dl className="project-metrics">
-                  {project.metrics.map((metric) => (
-                    <div key={metric.label}>
-                      <dt>{metric.value}</dt>
-                      <dd>{metric.label}</dd>
+        <div className="project-grid">
+          {projects.map((project, index) => {
+            const isOpen = expandedProject === project.name
+            const panelId = `project-panel-${index}`
+            return (
+              <article
+                className={`project-tile project-${project.tone}${isOpen ? ' project-tile-open' : ''} reveal`}
+                key={project.name}
+              >
+                <div className="project-tile-visual">
+                  <ProjectVisual variant={project.visual} />
+                </div>
+                <div className="project-tile-copy">
+                  <button
+                    type="button"
+                    className="project-tile-toggle"
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
+                    onClick={() => setExpandedProject(isOpen ? null : project.name)}
+                  >
+                    <span className="project-tile-head">
+                      <span className="project-tile-kicker">{project.kicker}</span>
+                      <span className="project-index">{String(index + 1).padStart(2, '0')}</span>
+                    </span>
+                    <span className="project-tile-title-row">
+                      <h3>{project.name}</h3>
+                      <ChevronDown className="project-tile-chevron" size={20} aria-hidden="true" />
+                    </span>
+                  </button>
+                  <div className="project-tile-panel" id={panelId}>
+                    <div className="project-tile-panel-inner">
+                      <span className="project-tile-desc">{project.description}</span>
+                      <dl className="project-metrics">
+                        {project.metrics.map((metric) => (
+                          <div key={metric.label}>
+                            <dt>{metric.value}</dt>
+                            <dd>{metric.label}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                      <ul>
+                        {project.stack.map((tool) => <li key={tool}>{tool}</li>)}
+                      </ul>
+                      <div className="project-footer">
+                        <strong>{project.detail}</strong>
+                        <div className="project-links">
+                          {project.demo && (
+                            <a
+                              className="project-link"
+                              href={project.demo}
+                              target="_blank"
+                              rel="noreferrer"
+                              tabIndex={isOpen ? 0 : -1}
+                            >
+                              <ExternalLink size={15} aria-hidden="true" /> Live demo <ArrowUpRight size={14} aria-hidden="true" />
+                            </a>
+                          )}
+                          {project.repo && (
+                            <a
+                              className="project-link"
+                              href={project.repo}
+                              target="_blank"
+                              rel="noreferrer"
+                              tabIndex={isOpen ? 0 : -1}
+                            >
+                              <Github size={15} aria-hidden="true" /> View source <ArrowUpRight size={14} aria-hidden="true" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  ))}
-                </dl>
-                <ul>
-                  {project.stack.map((tool) => <li key={tool}>{tool}</li>)}
-                </ul>
-                <div className="project-footer">
-                  <strong>{project.detail}</strong>
-                  <div className="project-links">
-                    {project.demo && (
-                      <a
-                        className="project-link"
-                        href={project.demo}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <ExternalLink size={15} aria-hidden="true" /> Live demo <ArrowUpRight size={14} aria-hidden="true" />
-                      </a>
-                    )}
-                    {project.repo && (
-                      <a
-                        className="project-link"
-                        href={project.repo}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <Github size={15} aria-hidden="true" /> View source <ArrowUpRight size={14} aria-hidden="true" />
-                      </a>
-                    )}
                   </div>
                 </div>
-              </div>
-              <div className="project-image">
-                <ProjectVisual variant={project.visual} />
-              </div>
-            </article>
-          ))}
+              </article>
+            )
+          })}
         </div>
       </section>
 
