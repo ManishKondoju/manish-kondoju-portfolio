@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { ScrollSmoother } from 'gsap/ScrollSmoother'
+import { CustomEase } from 'gsap/CustomEase'
 import {
   ArrowDownRight,
   ArrowLeft,
@@ -13,19 +15,16 @@ import {
   Github,
   Linkedin,
   Mail,
-  MapPin,
-  Menu,
   Pause,
   Phone,
   Play,
-  X,
 } from 'lucide-react'
 import { ProjectVisual } from './ProjectVisual'
 import { HeroBackdrop } from './HeroBackdrop'
 import { CustomCursor } from './CustomCursor'
 import { LoadingIntro } from './LoadingIntro'
 
-gsap.registerPlugin(ScrollTrigger, useGSAP)
+gsap.registerPlugin(ScrollTrigger, ScrollSmoother, CustomEase, useGSAP)
 
 const projects = [
   {
@@ -41,7 +40,6 @@ const projects = [
     ],
     detail: 'Built solo over one semester - DAMG 7374, Northeastern',
     repo: 'https://github.com/ManishKondoju/CrimeInvestigationGraph',
-    tone: 'sage',
     visual: 'graph' as const,
   },
   {
@@ -57,7 +55,6 @@ const projects = [
     ],
     detail: 'Personal project - agentic orchestration',
     repo: 'https://github.com/ManishKondoju/AgenticSystem',
-    tone: 'ink',
     visual: 'agents' as const,
   },
   {
@@ -73,7 +70,6 @@ const projects = [
     ],
     detail: 'Personal project - multimodal pipeline',
     repo: 'https://github.com/ManishKondoju/Prompt2Track',
-    tone: 'clay',
     visual: 'pipeline' as const,
   },
   {
@@ -89,7 +85,6 @@ const projects = [
     ],
     detail: 'Academic team project - research to interactive prototype',
     repo: null,
-    tone: 'sand',
     visual: 'wireframe' as const,
   },
   {
@@ -106,7 +101,6 @@ const projects = [
     detail: 'Academic project, INFO 7390 - Northeastern - live demo + walkthrough',
     repo: 'https://github.com/ManishKondoju/Health_Compass',
     demo: 'https://healthcompass22.streamlit.app/',
-    tone: 'sky',
     visual: 'health' as const,
   },
 ]
@@ -121,7 +115,7 @@ const capabilities = [
   {
     title: 'Requirements to shipped software',
     body: 'Translating what the desk actually needs into use cases, acceptance criteria, and configuration that survives a Change Advisory Board.',
-    className: 'capability-medium capability-dark',
+    className: 'capability-medium',
     accent: 'Business language to system behavior',
   },
   {
@@ -139,7 +133,7 @@ const capabilities = [
   {
     title: 'Governed AI in regulated environments',
     body: 'SR 11-7 model risk management, PII masking ahead of LLM calls, and infosec-approved vendor review - AI that clears bank compliance.',
-    className: 'capability-small capability-warm',
+    className: 'capability-small',
     accent: 'Compliance is a design input',
   },
 ]
@@ -225,14 +219,16 @@ function Header() {
   useEffect(() => {
     // Flip the header treatment when the dark hero clears it, not at an arbitrary
     // offset - otherwise the light monogram sits on the dark hero for ~800px.
-    const onScroll = () => {
-      const hero = document.querySelector<HTMLElement>('.hero')
-      const threshold = hero ? hero.offsetHeight - 90 : 120
-      setScrolled(window.scrollY > threshold)
-    }
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    // Driven by ScrollTrigger rather than a raw scroll listener: it batches with
+    // every other trigger on the page and stays correct under ScrollSmoother,
+    // which owns the scroll position and does not emit native scroll events 1:1.
+    const trigger = ScrollTrigger.create({
+      trigger: '.hero',
+      start: 'bottom 90px',
+      onEnter: () => setScrolled(true),
+      onLeaveBack: () => setScrolled(false),
+    })
+    return () => trigger.kill()
   }, [])
 
   return (
@@ -246,11 +242,18 @@ function Header() {
         <a href="#skills" onClick={() => setOpen(false)}>Skills</a>
         <a href="#approach" onClick={() => setOpen(false)}>Approach</a>
         <a className="nav-contact" href="#contact" onClick={() => setOpen(false)}>
-          Let&apos;s talk <ArrowUpRight size={16} aria-hidden="true" />
+          Let&apos;s talk
+          <span className="btn-icon"><ArrowUpRight size={14} aria-hidden="true" /></span>
         </a>
       </nav>
-      <button className="menu-button" onClick={() => setOpen(!open)} aria-label="Toggle menu">
-        {open ? <X /> : <Menu />}
+      {/* Two bars that rotate into an X, rather than swapping one glyph for another. */}
+      <button
+        className={open ? 'menu-button is-open' : 'menu-button'}
+        onClick={() => setOpen(!open)}
+        aria-label="Toggle menu"
+        aria-expanded={open}
+      >
+        <span /><span />
       </button>
     </header>
   )
@@ -312,19 +315,63 @@ function App() {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduceMotion) return
 
-    const intro = gsap.timeline({ defaults: { ease: 'power3.out' } })
-    intro
-      .from('.site-header', { y: -28, opacity: 0, duration: 0.7 })
-      .from('.hero-copy > *', { y: 42, opacity: 0, stagger: 0.1, duration: 0.9 }, '-=0.3')
-      .from('.hero-system', { clipPath: 'inset(0 0 100% 0)', duration: 1.25 }, '-=0.85')
+    // One curve for the whole page, matching the CSS --ease token.
+    const EASE = CustomEase.create('signature', '0.32, 0.72, 0, 1')
 
+    const intro = gsap.timeline({ defaults: { ease: EASE } })
+    intro
+      .from('.site-header', { y: -24, opacity: 0, duration: 0.8 })
+      .from('.hero-copy > *', { y: 34, opacity: 0, stagger: 0.09, duration: 1 }, '-=0.45')
+      .from('.hero-system', { opacity: 0, scale: 0.96, duration: 1.2 }, '-=0.9')
+
+    // Heavy fade-up: elements arrive with mass rather than popping in.
     gsap.utils.toArray<HTMLElement>('.reveal').forEach((element) => {
       gsap.from(element, {
-        y: 55,
+        y: 48,
         opacity: 0,
         duration: 1,
-        ease: 'power3.out',
+        ease: EASE,
         scrollTrigger: { trigger: element, start: 'top 86%', once: true },
+      })
+    })
+
+    // Bento cells arrive as a wave rather than one flat block. grid:'auto'
+    // lets GSAP infer rows/columns from the CSS grid for the stagger order.
+    const waveIn = (container: string, child: string) => {
+      const root = document.querySelector(container)
+      if (!root) return
+      gsap.from(root.querySelectorAll(child), {
+        y: 26,
+        opacity: 0,
+        scale: 0.985,
+        duration: 0.7,
+        ease: EASE,
+        stagger: { each: 0.06, from: 'start', grid: 'auto' },
+        scrollTrigger: { trigger: root, start: 'top 85%', once: true },
+      })
+    }
+    waveIn('.capability-grid', '.capability-card')
+    waveIn('.skill-grid', '.skill-group')
+    waveIn('.proof-bar dl', 'div')
+
+    // Stat counters. Values that start with a digit count up and keep their
+    // suffix ("45%" -> 0..45 + "%"); non-numeric ones ("Zero") just resolve.
+    gsap.utils.toArray<HTMLElement>('.proof-bar dt').forEach((el) => {
+      const raw = (el.textContent ?? '').trim()
+      const parsed = raw.match(/^(\d[\d,]*)(.*)$/)
+      if (!parsed) return
+      const target = Number(parsed[1].replace(/,/g, ''))
+      const suffix = parsed[2]
+      const counter = { value: 0 }
+      el.textContent = `0${suffix}`
+      gsap.to(counter, {
+        value: target,
+        duration: 1.4,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+        onUpdate: () => {
+          el.textContent = Math.round(counter.value).toLocaleString() + suffix
+        },
       })
     })
 
@@ -376,16 +423,92 @@ function App() {
         pinSpacing: false,
       })
     })
+
+    // Inertia-smoothed scrolling. Skipped on touch/coarse pointers - phones and
+    // tablets already have great native momentum scrolling, and driving this
+    // transform-based wrapper on top of that fights the OS instead of helping.
+    if (window.matchMedia('(pointer: fine)').matches) {
+      // The global CSS scroll-behavior:smooth is redundant once ScrollSmoother
+      // owns the scroll - left on, the two fight (native smooth-scroll nudges
+      // scrollY, ScrollSmoother's own ticker reads that mid-flight and snaps
+      // back), which is exactly the stutter this is meant to remove.
+      document.documentElement.style.scrollBehavior = 'auto'
+      ScrollSmoother.create({
+        wrapper: '#smooth-wrapper',
+        content: '#smooth-content',
+        smooth: 1.1,
+        effects: true,
+      })
+    }
   }, { scope: main })
 
-  // Expanding/collapsing a project tile shifts every section below it, which
-  // leaves later ScrollTriggers (the pinned experience heading) measuring
-  // against stale positions until the next resize. Refresh once the CSS
-  // grid-row transition on the panel has finished.
+  // Internal "#anchor" links (nav, hero CTA, footer) need to route through the
+  // smoother when it's active, or the native instant jump fights ScrollSmoother's
+  // next animation frame and the page visibly stutters into place instead of
+  // gliding. scroll-margin-top (in CSS) isn't read by ScrollSmoother's own
+  // scrollTo, so the fixed-header clearance is reproduced here via the offset.
   useEffect(() => {
-    const id = window.setTimeout(() => ScrollTrigger.refresh(), 360)
+    const onClick = (event: MouseEvent) => {
+      const link = (event.target as HTMLElement)?.closest?.('a[href^="#"]')
+      if (!link) return
+      const smoother = ScrollSmoother.get()
+      if (!smoother) return
+      const hash = link.getAttribute('href') ?? ''
+      if (hash === '#top') {
+        event.preventDefault()
+        smoother.scrollTo(0, true)
+        return
+      }
+      const target = hash.length > 1 ? document.querySelector(hash) : null
+      if (!target) return
+      event.preventDefault()
+      smoother.scrollTo(target, true, 'top top+=96')
+    }
+    document.addEventListener('click', onClick)
+    return () => document.removeEventListener('click', onClick)
+  }, [])
+
+  // Accordion driven by GSAP rather than CSS. Animating to height:auto is
+  // something CSS cannot do (the 0fr/1fr grid trick is the usual workaround);
+  // GSAP measures the natural height and tweens to it on the page's own curve,
+  // which also lets the panel contents stagger in behind the opening edge.
+  useGSAP(() => {
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    gsap.utils.toArray<HTMLElement>('.project-tile-panel').forEach((panel) => {
+      const isOpen = !!panel.closest('.project-tile')?.classList.contains('project-tile-open')
+      const rows = panel.querySelectorAll('.project-tile-panel-inner > *')
+
+      if (still) {
+        gsap.set(panel, { height: isOpen ? 'auto' : 0 })
+        gsap.set(rows, { opacity: 1, y: 0 })
+        return
+      }
+
+      gsap.to(panel, {
+        height: isOpen ? 'auto' : 0,
+        duration: 0.62,
+        ease: 'power3.inOut',
+        overwrite: 'auto',
+      })
+
+      if (isOpen) {
+        gsap.fromTo(
+          rows,
+          { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.5, stagger: 0.05, delay: 0.14, ease: 'power2.out', overwrite: 'auto' },
+        )
+      }
+    })
+
+    // The height change shifts every section below, so later triggers (the
+    // pinned experience heading) need remeasuring once the tween settles.
+    const id = window.setTimeout(() => {
+      ScrollTrigger.refresh()
+      ScrollSmoother.get()?.refresh()
+    }, 700)
     return () => window.clearTimeout(id)
-  }, [expandedProject])
+  }, { dependencies: [expandedProject], scope: main })
 
   return (
     <main ref={main} id="top" className="page-shell">
@@ -394,28 +517,33 @@ function App() {
       <a className="skip-link" href="#work">Skip to main content</a>
       <Header />
 
+      {/* ScrollSmoother needs a wrapper/content pair to transform - kept out of
+          the fixed-position elements above (header, cursor, loading intro),
+          which would otherwise inherit the transform and stop behaving as fixed. */}
+      <div id="smooth-wrapper">
+        <div id="smooth-content">
+
       <section className="hero" aria-labelledby="hero-title">
         <HeroBackdrop />
-        <div className="hero-copy">
-          <p className="eyebrow"><span /> Solutions engineer + business systems analyst</p>
-          <h1 id="hero-title">
-            I keep critical <span className="inline-image" aria-hidden="true" /> systems running, and build what comes next.
-          </h1>
-          <p className="hero-intro">
-            I&apos;m Manish. For three years I&apos;ve owned production reliability and requirements delivery for
-            enterprise trading systems on Citi&apos;s Fixed Income and Currencies desk. Outside of that, I build AI
-            tools end-to-end - because I&apos;d rather learn a technology by shipping something with it.
-          </p>
-          <div className="hero-actions">
-            <a className="button button-primary" href="#work">Explore my work <ArrowDownRight size={18} aria-hidden="true" /></a>
-            <a className="button button-quiet" href="/Manish_Kumar_Kondoju_Resume.pdf" download>
-              Résumé <Download size={17} aria-hidden="true" />
-            </a>
-          </div>
-          <div className="hero-meta">
-            <span><MapPin size={15} aria-hidden="true" /> Boston, MA</span>
-            <span>Open to relocation anywhere in the US</span>
-            <span>MS Information Systems, Northeastern</span>
+        <div className="hero-inner">
+          <div className="hero-copy">
+            <p className="eyebrow"><span /> Solutions engineer</p>
+            <h1 id="hero-title">
+              I keep critical <span className="inline-image" aria-hidden="true" /> systems running, and build what comes next.
+            </h1>
+            <p className="hero-intro">
+              Three years owning production reliability for Citi&apos;s trading systems. Now building AI tools end to end.
+            </p>
+            <div className="hero-actions">
+              <a className="button button-primary" href="#work">
+                Explore my work
+                <span className="btn-icon"><ArrowDownRight size={15} aria-hidden="true" /></span>
+              </a>
+              <a className="button button-quiet" href="/Manish_Kumar_Kondoju_Resume.pdf" download>
+                Résumé
+                <span className="btn-icon"><Download size={14} aria-hidden="true" /></span>
+              </a>
+            </div>
           </div>
           <div className="hero-system" aria-hidden="true">
             <div className="system-label system-label-a">Production reliability</div>
@@ -449,7 +577,6 @@ function App() {
 
       <section className="capabilities section-wrap" id="approach">
         <div className="section-heading reveal">
-          <p className="eyebrow"><span /> How I create value</p>
           <h2>Reliability on one side, shipped software on the other.</h2>
           <p>
             Most people pick one. I&apos;ve spent three years doing both: keeping mission-critical trading systems up
@@ -470,7 +597,6 @@ function App() {
 
       <section className="manifesto section-wrap">
         <div className="manifesto-aside reveal">
-          <p className="eyebrow light"><span /> My point of view</p>
           <p>Useful intelligence needs more than a model. It needs context, judgment, and operational discipline.</p>
         </div>
         <p className="manifesto-copy" aria-label={manifesto}>
@@ -483,7 +609,7 @@ function App() {
       <section className="work section-wrap" id="work">
         <div className="work-heading reveal">
           <div>
-            <p className="eyebrow light"><span /> Selected work</p>
+            <p className="eyebrow"><span /> Selected work</p>
             <h2>Things I built.</h2>
           </div>
           <p>Five projects taken from an idea to working software - with the numbers that show they actually work.</p>
@@ -494,9 +620,12 @@ function App() {
             const panelId = `project-panel-${index}`
             return (
               <article
-                className={`project-tile project-${project.tone}${isOpen ? ' project-tile-open' : ''} reveal`}
+                className={`project-tile${isOpen ? ' project-tile-open' : ''} reveal`}
                 key={project.name}
               >
+                {/* Outer shell above, inner core here: two nested enclosures with
+                    concentric radii, so the tile reads as machined hardware. */}
+                <div className="project-tile-core">
                 <div className="project-tile-visual">
                   <ProjectVisual variant={project.visual} />
                 </div>
@@ -514,7 +643,7 @@ function App() {
                     </span>
                     <span className="project-tile-title-row">
                       <h3>{project.name}</h3>
-                      <ChevronDown className="project-tile-chevron" size={20} aria-hidden="true" />
+                      <span className="project-tile-chevron"><ChevronDown size={15} aria-hidden="true" /></span>
                     </span>
                   </button>
                   <div className="project-tile-panel" id={panelId}>
@@ -561,6 +690,7 @@ function App() {
                     </div>
                   </div>
                 </div>
+                </div>
               </article>
             )
           })}
@@ -570,7 +700,6 @@ function App() {
       <section className="experience section-wrap" id="experience">
         <div className="experience-layout">
           <div className="experience-heading reveal">
-            <p className="eyebrow"><span /> Experience</p>
             <h2>Three years inside a bank&apos;s trading floor.</h2>
             <p>
               That range shapes how I evaluate AI: ambitious about its potential, precise about what makes it
@@ -627,7 +756,6 @@ function App() {
 
       <section className="skills section-wrap" id="skills">
         <div className="section-heading reveal">
-          <p className="eyebrow"><span /> Tooling</p>
           <h2>What I work with.</h2>
           <p>Certified where it counts, and hands-on with the rest through production work or shipped side projects.</p>
         </div>
@@ -656,7 +784,6 @@ function App() {
 
       <section className="evidence section-wrap">
         <div className="evidence-lead reveal">
-          <p className="eyebrow light"><span /> Evidence over adjectives</p>
           <h2>Outcomes that make the work matter.</h2>
         </div>
         <EvidenceCarousel />
@@ -692,6 +819,9 @@ function App() {
         <p>Designed with intention. Built for clarity.</p>
         <a href="#top">Back to top <ArrowUpRight size={15} aria-hidden="true" /></a>
       </footer>
+
+        </div>
+      </div>
     </main>
   )
 }

@@ -8,7 +8,9 @@ import * as THREE from 'three'
  * feel without a modeled/rigged character (out of scope - see chat).
  */
 
-const PALETTE = ['#3857ff', '#814ef5', '#70e1e8', '#ff7968', '#d7f85c']
+// One accent, page-wide. The old blue/violet/cyan mix was the generic
+// "AI gradient" palette; particles are now off-white with acid highlights.
+const PALETTE = ['#f3f2ef', '#f3f2ef', '#8f8f8a', '#d7f85c', '#d7f85c']
 
 function makeSprite() {
   const size = 128
