@@ -395,6 +395,7 @@ section[id], #top { scroll-margin-top: 120px; }
 /* Hero system graphic - double-bezel shell around a live panel. */
 .hero-system {
   position: relative;
+  overflow: hidden;
   height: clamp(320px, 42vh, 440px);
   padding: 6px;
   border: 1px solid var(--hairline);
@@ -417,36 +418,21 @@ section[id], #top { scroll-margin-top: 120px; }
 
 .hero-system > * { position: relative; z-index: 1; }
 
-.hero-system svg {
-  position: absolute;
-  inset: 6px;
-  width: calc(100% - 12px);
-  height: calc(100% - 12px);
-  border-radius: var(--r-core);
-}
-
-.hero-system path {
-  fill: none;
-  stroke: var(--acid-line);
-  stroke-width: 1;
-  stroke-dasharray: 4 9;
-}
-
 .system-core {
   position: absolute;
   left: 50%;
   top: 50%;
-  z-index: 3;
+  z-index: 4;
   display: grid;
-  width: 70px;
-  height: 70px;
+  width: 74px;
+  height: 74px;
   place-items: center;
   border-radius: 50%;
   color: #0a0a0c;
   background: var(--acid);
-  box-shadow: 0 0 60px rgba(215, 248, 92, 0.28);
+  box-shadow: 0 0 70px rgba(215, 248, 92, 0.34);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
   transform: translate(-50%, -50%);
 }
 
@@ -459,41 +445,53 @@ section[id], #top { scroll-margin-top: 120px; }
   transform: translate(-50%, -50%);
 }
 
-.orbit-a { width: 190px; height: 190px; }
-.orbit-b { width: 330px; height: 330px; }
+.orbit-a { width: 196px; height: 196px; }
+.orbit-b { width: 336px; height: 336px; }
 
-.system-node {
+/* Each ring is rotated by GSAP; the label inside counter-rotates by the same
+   amount, so terms ride the orbit without ever going upside down. */
+.orbit-ring {
   position: absolute;
-  z-index: 4;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text);
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.5);
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  width: 0;
+  height: 0;
 }
 
-.node-a { left: 15%; top: 70%; background: var(--acid); box-shadow: 0 0 16px var(--acid-line); }
-.node-b { left: 33%; top: 26%; }
-.node-c { right: 28%; top: 68%; }
-.node-d { right: 13%; top: 28%; background: var(--acid); box-shadow: 0 0 16px var(--acid-line); }
-
-.system-label {
+.orbit-term {
   position: absolute;
-  z-index: 5;
-  padding: 7px 11px;
+  display: block;
+  will-change: transform;
+}
+
+.orbit-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  width: max-content;
+  padding: 6px 11px;
   border: 1px solid var(--hairline);
-  border-radius: 8px;
+  border-radius: 999px;
   color: var(--text-2);
-  background: rgba(10, 10, 12, 0.75);
-  backdrop-filter: blur(8px);
+  background: rgba(10, 10, 12, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 9.5px;
   letter-spacing: 0.06em;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  will-change: transform;
 }
 
-.system-label-a { left: 7%; top: 15%; }
-.system-label-b { right: 7%; top: 13%; }
-.system-label-c { right: 12%; bottom: 12%; }
+/* Inner ring reads as the closer, brighter layer. */
+.orbit-ring-0 .orbit-label {
+  color: var(--acid);
+  border-color: var(--acid-line);
+  background: rgba(20, 26, 8, 0.82);
+}
 
 .hero-scene { position: absolute; inset: 0; z-index: 1; }
 .hero-scene-canvas { display: block; width: 100%; height: 100%; }
@@ -501,48 +499,6 @@ section[id], #top { scroll-margin-top: 120px; }
 /* -------------------------------------------------------------
    Proof bar
    ------------------------------------------------------------- */
-
-.proof-bar {
-  padding: 0 max(6vw, calc((100% - var(--shell-max)) / 2));
-  border-top: 1px solid var(--hairline);
-  border-bottom: 1px solid var(--hairline);
-  background: var(--surface);
-}
-
-.proof-bar dl {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-}
-
-.proof-bar dl > div {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 10px;
-  padding: 38px 30px;
-  border-left: 1px solid var(--hairline);
-}
-
-.proof-bar dl > div:first-child { border-left: 0; padding-left: 0; }
-
-.proof-bar dt {
-  font-size: clamp(2rem, 3.2vw, 3.1rem);
-  font-weight: 500;
-  letter-spacing: -0.05em;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.proof-bar dd {
-  margin: 0;
-  color: var(--text-3);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  line-height: 1.5;
-  text-transform: uppercase;
-}
 
 /* -------------------------------------------------------------
    Section shell
@@ -718,14 +674,14 @@ section[id], #top { scroll-margin-top: 120px; }
 
 .pan-track {
   display: flex;
-  gap: 18px;
+  gap: 26px;
   padding: 0 max(6vw, calc((100% - var(--shell-max)) / 2));
   will-change: transform;
 }
 
 .project-card {
   display: flex;
-  width: clamp(330px, 31vw, 460px);
+  width: clamp(340px, 46vw, 680px);
   flex: none;
   padding: 6px;
   border: 1px solid var(--hairline);
@@ -1383,8 +1339,6 @@ html.has-custom-cursor button { cursor: none; }
   .capability-small { grid-column: span 6; }
   .manifesto, .experience-layout, .evidence { grid-template-columns: 1fr; }
   .skill-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .proof-bar dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .proof-bar dl > div:nth-child(3) { border-left: 0; padding-left: 0; }
 }
 
 @media (max-width: 820px) {
@@ -1459,10 +1413,6 @@ html.has-custom-cursor button { cursor: none; }
   .button { justify-content: space-between; }
   .capability-small { grid-column: span 12; }
   .skill-grid { grid-template-columns: 1fr; }
-  .proof-bar { padding: 0 20px; }
-  .proof-bar dl { grid-template-columns: 1fr 1fr; }
-  .proof-bar dl > div { padding: 26px 16px; }
-  .proof-bar dl > div:nth-child(odd) { border-left: 0; padding-left: 0; }
   .project-metrics { grid-template-columns: 1fr 1fr; }
   .project-metrics > div:last-child { grid-column: span 2; }
   .project-card-foot { align-items: flex-start; flex-direction: column; }

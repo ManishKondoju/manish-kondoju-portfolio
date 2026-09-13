@@ -161,13 +161,6 @@ const evidence = [
   },
 ]
 
-const proofPoints = [
-  { value: 'Zero', label: 'SLA breaches, 1,200+ cases' },
-  { value: '45%', label: 'Faster response via automation' },
-  { value: '80%', label: 'Questions self-resolved' },
-  { value: '3 yrs', label: 'Citi trading systems' },
-]
-
 const skillGroups = [
   {
     title: 'Languages & scripting',
@@ -208,6 +201,31 @@ const targetRoles = [
   'System Analyst',
   'Product Owner',
   'AI Consultant',
+]
+
+// Two counter-rotating rings of the things he actually works with.
+// Inner ring turns clockwise, outer anticlockwise, both slowly.
+const orbits = [
+  {
+    radius: 98,
+    duration: 58,
+    direction: 1,
+    terms: ['Graph RAG', 'Neo4j', 'Python', 'Multi-agent'],
+  },
+  {
+    radius: 168,
+    duration: 86,
+    direction: -1,
+    terms: [
+      'Reliability',
+      'Requirements',
+      'Shipped software',
+      'AWS',
+      'Trading desks',
+      'ITIL v4',
+      'Governance',
+    ],
+  },
 ]
 
 const manifesto = 'I would rather learn a technology by shipping something with it than by reading about it. That is why the reliability work and the building work are the same job.'
@@ -368,25 +386,70 @@ function App() {
     }
     waveIn('.capability-grid', '.capability-card')
     waveIn('.skill-grid', '.skill-group')
-    waveIn('.proof-bar dl', 'div')
 
-    // Stat counters. Values that start with a digit count up and keep their
-    // suffix ("45%" -> 0..45 + "%"); non-numeric ones ("Zero") just resolve.
-    gsap.utils.toArray<HTMLElement>('.proof-bar dt').forEach((el) => {
-      const raw = (el.textContent ?? '').trim()
-      const parsed = raw.match(/^(\d[\d,]*)(.*)$/)
-      if (!parsed) return
-      const target = Number(parsed[1].replace(/,/g, ''))
-      const suffix = parsed[2]
-      const counter = { value: 0 }
-      el.textContent = `0${suffix}`
-      gsap.to(counter, {
-        value: target,
-        duration: 1.4,
-        ease: 'power2.out',
-        scrollTrigger: { trigger: el, start: 'top 90%', once: true },
-        onUpdate: () => {
-          el.textContent = Math.round(counter.value).toLocaleString() + suffix
+    // Section headings get the same masked-line treatment as the hero, so every
+    // major moment on the page opens the same way.
+    const splits: SplitText[] = []
+    gsap.utils.toArray<HTMLElement>(
+      '.section-heading h2, .work-heading h2, .experience-heading h2, .evidence-lead h2, .contact-inner h2',
+    ).forEach((h2) => {
+      const sp = new SplitText(h2, { type: 'lines', linesClass: 'hero-line' })
+      splits.push(sp)
+      sp.lines.forEach((line) => {
+        const mask = document.createElement('span')
+        mask.className = 'hero-line-mask'
+        line.parentNode?.insertBefore(mask, line)
+        mask.appendChild(line)
+      })
+      gsap.from(sp.lines, {
+        yPercent: 110,
+        duration: 1.05,
+        stagger: 0.09,
+        ease: EASE,
+        scrollTrigger: { trigger: h2, start: 'top 88%', once: true },
+      })
+    })
+
+    // Hero drifts out of frame at two speeds as you leave it - copy rises
+    // faster than the panel, which gives the exit some depth.
+    gsap.to('.hero-copy', {
+      yPercent: -18,
+      opacity: 0,
+      ease: 'none',
+      scrollTrigger: { trigger: '.hero', start: 'center center', end: 'bottom top', scrub: 1 },
+    })
+    gsap.to('.hero-system', {
+      yPercent: -8,
+      ease: 'none',
+      scrollTrigger: { trigger: '.hero', start: 'center center', end: 'bottom top', scrub: 1 },
+    })
+
+    // Orbiting terms. Each ring turns one way, its labels turn the other way at
+    // the same rate, so the text never tips over. Ambient speed on purpose -
+    // one revolution per minute-ish, not a spinner.
+    orbits.forEach((ring, index) => {
+      const ringEl = document.querySelector<HTMLElement>(`.orbit-ring-${index}`)
+      if (!ringEl) return
+      const labels = ringEl.querySelectorAll('.orbit-label')
+      const spin = gsap.to(ringEl, {
+        rotation: 360 * ring.direction,
+        duration: ring.duration,
+        repeat: -1,
+        ease: 'none',
+      })
+      const counter = gsap.to(labels, {
+        rotation: -360 * ring.direction,
+        duration: ring.duration,
+        repeat: -1,
+        ease: 'none',
+      })
+      // Infinite loops are a battery cost when nobody is looking at them.
+      ScrollTrigger.create({
+        trigger: '.hero',
+        start: 'top bottom',
+        end: 'bottom top',
+        onToggle: (self) => {
+          if (self.isActive) { spin.play(); counter.play() } else { spin.pause(); counter.pause() }
         },
       })
     })
@@ -426,7 +489,7 @@ function App() {
       cards.forEach((card) => {
         gsap.fromTo(
           card,
-          { scale: 0.94, opacity: 0.5 },
+          { scale: 0.9, opacity: 0.32 },
           {
             scale: 1,
             opacity: 1,
@@ -492,7 +555,10 @@ function App() {
       })
     }
 
-    return () => split?.revert()
+    return () => {
+      split?.revert()
+      splits.forEach((sp) => sp.revert())
+    }
   }, { scope: main })
 
   // Internal "#anchor" links (nav, hero CTA, footer) need to route through the
@@ -556,34 +622,32 @@ function App() {
               </a>
             </div>
           </div>
+          {/* Everything he works with, orbiting the initials. Two rings turn at
+              different speeds and directions; each label counter-rotates so the
+              text stays upright as its ring carries it around. */}
           <div className="hero-system" aria-hidden="true">
-            <div className="system-label system-label-a">Production reliability</div>
-            <div className="system-label system-label-b">Requirements</div>
-            <div className="system-label system-label-c">Shipped software</div>
-            <span className="system-node node-a" />
-            <span className="system-node node-b" />
-            <span className="system-node node-c" />
-            <span className="system-node node-d" />
             <div className="system-orbit orbit-a" />
             <div className="system-orbit orbit-b" />
+
+            {orbits.map((ring, ringIndex) => (
+              <div className={`orbit-ring orbit-ring-${ringIndex}`} key={ringIndex}>
+                {ring.terms.map((term, i) => (
+                  <span
+                    className="orbit-term"
+                    key={term}
+                    style={{
+                      transform: `rotate(${(360 / ring.terms.length) * i}deg) translate(${ring.radius}px) rotate(${-(360 / ring.terms.length) * i}deg)`,
+                    }}
+                  >
+                    <span className="orbit-label">{term}</span>
+                  </span>
+                ))}
+              </div>
+            ))}
+
             <div className="system-core">MK</div>
-            <svg viewBox="0 0 1200 360" preserveAspectRatio="none">
-              <path d="M70 270 C 260 40, 420 335, 590 150 S 920 30, 1130 220" />
-              <path d="M45 100 C 310 310, 460 30, 690 260 S 1010 320, 1160 70" />
-            </svg>
           </div>
         </div>
-      </section>
-
-      <section className="proof-bar" aria-label="Track record at a glance">
-        <dl>
-          {proofPoints.map((point) => (
-            <div key={point.label}>
-              <dt>{point.value}</dt>
-              <dd>{point.label}</dd>
-            </div>
-          ))}
-        </dl>
       </section>
 
       <section className="capabilities section-wrap" id="approach">
