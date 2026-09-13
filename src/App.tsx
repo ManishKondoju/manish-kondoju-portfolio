@@ -4,12 +4,12 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ScrollSmoother } from 'gsap/ScrollSmoother'
 import { CustomEase } from 'gsap/CustomEase'
+import { SplitText } from 'gsap/SplitText'
 import {
   ArrowDownRight,
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  ChevronDown,
   Download,
   ExternalLink,
   Github,
@@ -24,7 +24,7 @@ import { HeroBackdrop } from './HeroBackdrop'
 import { CustomCursor } from './CustomCursor'
 import { LoadingIntro } from './LoadingIntro'
 
-gsap.registerPlugin(ScrollTrigger, ScrollSmoother, CustomEase, useGSAP)
+gsap.registerPlugin(ScrollTrigger, ScrollSmoother, CustomEase, SplitText, useGSAP)
 
 const projects = [
   {
@@ -309,7 +309,6 @@ function EvidenceCarousel() {
 
 function App() {
   const main = useRef<HTMLElement>(null)
-  const [expandedProject, setExpandedProject] = useState<string | null>(projects[0].name)
 
   useGSAP(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -318,11 +317,28 @@ function App() {
     // One curve for the whole page, matching the CSS --ease token.
     const EASE = CustomEase.create('signature', '0.32, 0.72, 0, 1')
 
+    // Headline arrives line by line from behind a mask, which reads as
+    // typesetting rather than a fade. SplitText is reverted on cleanup so the
+    // original text nodes go back for assistive tech.
+    const headline = document.querySelector<HTMLElement>('#hero-title')
+    let split: SplitText | null = null
+    if (headline) {
+      split = new SplitText(headline, { type: 'lines', linesClass: 'hero-line' })
+      split.lines.forEach((line) => {
+        const wrap = document.createElement('span')
+        wrap.className = 'hero-line-mask'
+        line.parentNode?.insertBefore(wrap, line)
+        wrap.appendChild(line)
+      })
+    }
+
     const intro = gsap.timeline({ defaults: { ease: EASE } })
     intro
       .from('.site-header', { y: -24, opacity: 0, duration: 0.8 })
-      .from('.hero-copy > *', { y: 34, opacity: 0, stagger: 0.09, duration: 1 }, '-=0.45')
-      .from('.hero-system', { opacity: 0, scale: 0.96, duration: 1.2 }, '-=0.9')
+      .from('.eyebrow', { y: 16, opacity: 0, duration: 0.7 }, '-=0.45')
+      .from('.hero-line', { yPercent: 108, duration: 1.15, stagger: 0.11 }, '-=0.4')
+      .from('.hero-intro, .hero-actions', { y: 26, opacity: 0, stagger: 0.1, duration: 0.9 }, '-=0.75')
+      .from('.hero-system', { opacity: 0, scale: 0.96, duration: 1.2 }, '-=1')
 
     // Heavy fade-up: elements arrive with mass rather than popping in.
     gsap.utils.toArray<HTMLElement>('.reveal').forEach((element) => {
@@ -375,22 +391,58 @@ function App() {
       })
     })
 
-    gsap.utils.toArray<HTMLElement>('.project-tile-visual svg').forEach((visual) => {
-      gsap.fromTo(
-        visual,
-        { scale: 0.9, opacity: 0.6 },
-        {
-          scale: 1,
-          opacity: 1,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: visual,
-            start: 'top bottom',
-            end: 'center center',
-            scrub: 1,
+    // Horizontal pan: the section pins and vertical scroll drives the track
+    // sideways. Scroll length equals the track overflow, so the five cards cost
+    // about as much scroll as the grid they replaced.
+    const media = gsap.matchMedia()
+
+    media.add('(min-width: 900px)', () => {
+      const wrap = document.querySelector<HTMLElement>('.pan-wrap')
+      const track = document.querySelector<HTMLElement>('.pan-track')
+      const bar = document.querySelector<HTMLElement>('.pan-progress span')
+      if (!wrap || !track) return
+
+      const distance = () => Math.max(0, track.scrollWidth - window.innerWidth)
+
+      const pan = gsap.to(track, {
+        x: () => -distance(),
+        ease: 'none',
+        scrollTrigger: {
+          trigger: wrap,
+          start: 'top top',
+          end: () => `+=${distance()}`,
+          pin: true,
+          scrub: 1,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            if (bar) gsap.set(bar, { scaleX: self.progress })
           },
         },
-      )
+      })
+
+      // Cards lift as they reach the middle of the viewport, so the one you are
+      // reading is the one with weight.
+      const cards = gsap.utils.toArray<HTMLElement>('.project-card')
+      cards.forEach((card) => {
+        gsap.fromTo(
+          card,
+          { scale: 0.94, opacity: 0.5 },
+          {
+            scale: 1,
+            opacity: 1,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: card,
+              containerAnimation: pan,
+              start: 'left 88%',
+              end: 'center 58%',
+              scrub: true,
+            },
+          },
+        )
+      })
+
+      return () => pan.kill()
     })
 
     gsap.fromTo(
@@ -413,7 +465,6 @@ function App() {
     // against fallback-font metrics and fires at the wrong scroll offset.
     document.fonts?.ready.then(() => ScrollTrigger.refresh())
 
-    const media = gsap.matchMedia()
     media.add('(min-width: 1101px)', () => {
       ScrollTrigger.create({
         trigger: '.experience-layout',
@@ -440,6 +491,8 @@ function App() {
         effects: true,
       })
     }
+
+    return () => split?.revert()
   }, { scope: main })
 
   // Internal "#anchor" links (nav, hero CTA, footer) need to route through the
@@ -467,48 +520,6 @@ function App() {
     document.addEventListener('click', onClick)
     return () => document.removeEventListener('click', onClick)
   }, [])
-
-  // Accordion driven by GSAP rather than CSS. Animating to height:auto is
-  // something CSS cannot do (the 0fr/1fr grid trick is the usual workaround);
-  // GSAP measures the natural height and tweens to it on the page's own curve,
-  // which also lets the panel contents stagger in behind the opening edge.
-  useGSAP(() => {
-    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-    gsap.utils.toArray<HTMLElement>('.project-tile-panel').forEach((panel) => {
-      const isOpen = !!panel.closest('.project-tile')?.classList.contains('project-tile-open')
-      const rows = panel.querySelectorAll('.project-tile-panel-inner > *')
-
-      if (still) {
-        gsap.set(panel, { height: isOpen ? 'auto' : 0 })
-        gsap.set(rows, { opacity: 1, y: 0 })
-        return
-      }
-
-      gsap.to(panel, {
-        height: isOpen ? 'auto' : 0,
-        duration: 0.62,
-        ease: 'power3.inOut',
-        overwrite: 'auto',
-      })
-
-      if (isOpen) {
-        gsap.fromTo(
-          rows,
-          { opacity: 0, y: 14 },
-          { opacity: 1, y: 0, duration: 0.5, stagger: 0.05, delay: 0.14, ease: 'power2.out', overwrite: 'auto' },
-        )
-      }
-    })
-
-    // The height change shifts every section below, so later triggers (the
-    // pinned experience heading) need remeasuring once the tween settles.
-    const id = window.setTimeout(() => {
-      ScrollTrigger.refresh()
-      ScrollSmoother.get()?.refresh()
-    }, 700)
-    return () => window.clearTimeout(id)
-  }, { dependencies: [expandedProject], scope: main })
 
   return (
     <main ref={main} id="top" className="page-shell">
@@ -606,94 +617,70 @@ function App() {
         </p>
       </section>
 
-      <section className="work section-wrap" id="work">
-        <div className="work-heading reveal">
+      {/* Horizontal pan. The section pins and vertical scroll drives the track
+          sideways, so every project gets a full-attention moment and its numbers
+          sit on the card face rather than behind a click. Below 900px this
+          degrades to a native scroll-snap carousel - hijacking touch scroll is
+          the wrong trade on a phone. */}
+      <section className="work" id="work">
+        <div className="work-heading section-wrap reveal">
           <div>
             <p className="eyebrow"><span /> Selected work</p>
             <h2>Things I built.</h2>
           </div>
           <p>Five projects taken from an idea to working software - with the numbers that show they actually work.</p>
         </div>
-        <div className="project-grid">
-          {projects.map((project, index) => {
-            const isOpen = expandedProject === project.name
-            const panelId = `project-panel-${index}`
-            return (
-              <article
-                className={`project-tile${isOpen ? ' project-tile-open' : ''} reveal`}
-                key={project.name}
-              >
-                {/* Outer shell above, inner core here: two nested enclosures with
-                    concentric radii, so the tile reads as machined hardware. */}
-                <div className="project-tile-core">
-                <div className="project-tile-visual">
-                  <ProjectVisual variant={project.visual} />
-                </div>
-                <div className="project-tile-copy">
-                  <button
-                    type="button"
-                    className="project-tile-toggle"
-                    aria-expanded={isOpen}
-                    aria-controls={panelId}
-                    onClick={() => setExpandedProject(isOpen ? null : project.name)}
-                  >
-                    <span className="project-tile-head">
-                      <span className="project-tile-kicker">{project.kicker}</span>
-                      <span className="project-index">{String(index + 1).padStart(2, '0')}</span>
-                    </span>
-                    <span className="project-tile-title-row">
-                      <h3>{project.name}</h3>
-                      <span className="project-tile-chevron"><ChevronDown size={15} aria-hidden="true" /></span>
-                    </span>
-                  </button>
-                  <div className="project-tile-panel" id={panelId}>
-                    <div className="project-tile-panel-inner">
-                      <span className="project-tile-desc">{project.description}</span>
-                      <dl className="project-metrics">
-                        {project.metrics.map((metric) => (
-                          <div key={metric.label}>
-                            <dt>{metric.value}</dt>
-                            <dd>{metric.label}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                      <ul>
-                        {project.stack.map((tool) => <li key={tool}>{tool}</li>)}
-                      </ul>
-                      <div className="project-footer">
-                        <strong>{project.detail}</strong>
-                        <div className="project-links">
-                          {project.demo && (
-                            <a
-                              className="project-link"
-                              href={project.demo}
-                              target="_blank"
-                              rel="noreferrer"
-                              tabIndex={isOpen ? 0 : -1}
-                            >
-                              <ExternalLink size={15} aria-hidden="true" /> Live demo <ArrowUpRight size={14} aria-hidden="true" />
-                            </a>
-                          )}
-                          {project.repo && (
-                            <a
-                              className="project-link"
-                              href={project.repo}
-                              target="_blank"
-                              rel="noreferrer"
-                              tabIndex={isOpen ? 0 : -1}
-                            >
-                              <Github size={15} aria-hidden="true" /> View source <ArrowUpRight size={14} aria-hidden="true" />
-                            </a>
-                          )}
+
+        <div className="pan-wrap">
+          <div className="pan-track">
+            {projects.map((project, index) => (
+              <article className="project-card" key={project.name}>
+                <div className="project-card-core">
+                  <div className="project-card-visual">
+                    <ProjectVisual variant={project.visual} />
+                    <span className="project-card-index">{String(index + 1).padStart(2, '0')}</span>
+                  </div>
+
+                  <div className="project-card-body">
+                    <p className="project-card-kicker">{project.kicker}</p>
+                    <h3>{project.name}</h3>
+                    <p className="project-card-desc">{project.description}</p>
+
+                    <dl className="project-metrics">
+                      {project.metrics.map((metric) => (
+                        <div key={metric.label}>
+                          <dt>{metric.value}</dt>
+                          <dd>{metric.label}</dd>
                         </div>
+                      ))}
+                    </dl>
+
+                    <ul className="project-card-stack">
+                      {project.stack.map((tool) => <li key={tool}>{tool}</li>)}
+                    </ul>
+
+                    <div className="project-card-foot">
+                      <strong>{project.detail}</strong>
+                      <div className="project-links">
+                        {project.demo && (
+                          <a className="project-link" href={project.demo} target="_blank" rel="noreferrer">
+                            <ExternalLink size={14} aria-hidden="true" /> Live demo
+                          </a>
+                        )}
+                        {project.repo && (
+                          <a className="project-link" href={project.repo} target="_blank" rel="noreferrer">
+                            <Github size={14} aria-hidden="true" /> Source
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
-                </div>
               </article>
-            )
-          })}
+            ))}
+          </div>
+
+          <div className="pan-progress" aria-hidden="true"><span /></div>
         </div>
       </section>
 

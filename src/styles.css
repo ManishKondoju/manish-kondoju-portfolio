@@ -704,34 +704,43 @@ section[id], #top { scroll-margin-top: 120px; }
 
 .work { background: var(--void); }
 
-.work-heading { margin-bottom: clamp(52px, 5vw, 84px); }
+.work-heading { margin-bottom: clamp(40px, 4vw, 64px); }
 .work-heading .eyebrow { margin-bottom: 26px; }
 
-.project-grid {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* Pinned viewport: the track slides sideways inside it as you scroll down. */
+.pan-wrap {
+  position: relative;
+  display: flex;
+  height: 100dvh;
+  align-items: center;
+  overflow: hidden;
 }
 
-/* Outer shell */
-.project-tile {
+.pan-track {
+  display: flex;
+  gap: 18px;
+  padding: 0 max(6vw, calc((100% - var(--shell-max)) / 2));
+  will-change: transform;
+}
+
+.project-card {
+  display: flex;
+  width: clamp(330px, 31vw, 460px);
+  flex: none;
   padding: 6px;
   border: 1px solid var(--hairline);
   border-radius: var(--r-shell);
   background: var(--shell);
-  box-shadow: var(--inner-lip), 0 30px 90px rgba(0, 0, 0, 0.4);
-  transition: border-color var(--t-mid) var(--ease), transform var(--t-mid) var(--ease);
+  box-shadow: var(--inner-lip), 0 30px 90px rgba(0, 0, 0, 0.45);
+  transition: border-color var(--t-mid) var(--ease);
 }
 
-.project-tile:hover { border-color: var(--hairline-strong); }
+.project-card:hover { border-color: var(--acid-line); }
 
-.project-tile-open { grid-column: 1 / -1; }
-
-/* Inner core - concentric radius, own surface, own top lip */
-.project-tile-core {
+.project-card-core {
   display: flex;
+  width: 100%;
   min-width: 0;
-  height: 100%;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--hairline);
@@ -740,15 +749,13 @@ section[id], #top { scroll-margin-top: 120px; }
   box-shadow: var(--inner-lip);
 }
 
-.project-tile-open .project-tile-core { flex-direction: row; }
-
-.project-tile-visual {
+.project-card-visual {
   position: relative;
   display: grid;
   flex: none;
   place-items: stretch;
   aspect-ratio: 16 / 10;
-  padding: 24px;
+  padding: 22px;
   overflow: hidden;
   border-bottom: 1px solid var(--hairline);
   background:
@@ -756,15 +763,7 @@ section[id], #top { scroll-margin-top: 120px; }
     var(--surface-3);
 }
 
-.project-tile-open .project-tile-visual {
-  width: 42%;
-  aspect-ratio: auto;
-  border-bottom: 0;
-  border-right: 1px solid var(--hairline);
-  padding: clamp(24px, 2.4vw, 40px);
-}
-
-.project-tile-visual svg {
+.project-card-visual svg {
   display: block;
   width: 100%;
   height: 100%;
@@ -772,107 +771,65 @@ section[id], #top { scroll-margin-top: 120px; }
   color: var(--text);
 }
 
-.project-tile-copy {
+.project-card-index {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  color: var(--text-3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.project-card-body {
   display: flex;
   min-width: 0;
   flex: 1;
   flex-direction: column;
+  padding: 24px 24px 26px;
 }
 
-.project-tile-toggle {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  padding: 24px 26px;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-}
-
-.project-tile-toggle:focus-visible { outline-offset: -4px; }
-
-.project-tile-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.project-tile-kicker,
-.project-index {
-  color: var(--text-3);
+.project-card-kicker {
+  margin: 0;
+  color: var(--acid);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-.project-tile-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-top: 14px;
-}
-
-.project-tile-toggle h3 {
-  margin: 0;
+.project-card-body h3 {
+  margin: 12px 0 12px;
   overflow-wrap: anywhere;
-  font-size: clamp(1.3rem, 1.75vw, 1.75rem);
+  font-size: clamp(1.35rem, 1.7vw, 1.7rem);
   font-weight: 500;
   letter-spacing: -0.035em;
   line-height: 1.1;
 }
 
-.project-tile-open .project-tile-toggle h3 { font-size: clamp(1.6rem, 2.3vw, 2.2rem); }
-
-.project-tile-chevron {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  flex: none;
-  place-items: center;
-  border: 1px solid var(--hairline);
-  border-radius: 50%;
+.project-card-desc {
+  margin: 0;
   color: var(--text-2);
-  transition: transform var(--t-mid) var(--ease), background var(--t-fast) var(--ease),
-    color var(--t-fast) var(--ease);
+  font-size: 0.88rem;
+  line-height: 1.58;
 }
 
-.project-tile-toggle:hover .project-tile-chevron { color: var(--acid); border-color: var(--acid-line); }
-.project-tile-open .project-tile-chevron { transform: rotate(180deg); }
-
-/* Height is driven by GSAP (height:auto is a GSAP-only capability), so the
-   panel just needs to clip. */
-.project-tile-panel { height: 0; overflow: hidden; }
-
-.project-tile-panel-inner > * { padding: 0 26px; }
-.project-tile-panel-inner > *:last-child { padding-bottom: 26px; }
-
-.project-tile-desc {
-  display: block;
-  max-width: 60ch;
-  color: var(--text-2);
-  font-size: 0.94rem;
-  line-height: 1.62;
-}
-
+/* Metrics live on the card face, not behind an interaction. */
 .project-metrics {
   display: grid;
-  gap: 12px 22px;
+  gap: 10px 16px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 22px 0 0;
-  padding-top: 20px;
+  padding: 18px 0;
   border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .project-metrics > div { min-width: 0; }
 
 .project-metrics dt {
   color: var(--acid);
-  font-size: clamp(1.1rem, 1.35vw, 1.4rem);
+  font-size: clamp(1.05rem, 1.3vw, 1.35rem);
   font-weight: 500;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -886,37 +843,37 @@ section[id], #top { scroll-margin-top: 120px; }
   line-height: 1.45;
 }
 
-.project-tile-panel ul {
+.project-card-stack {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 20px 0 22px;
-  padding: 0 26px;
+  gap: 5px;
+  margin: 18px 0 0;
+  padding: 0;
   list-style: none;
 }
 
-.project-tile-panel li {
-  padding: 6px 11px;
+.project-card-stack li {
+  padding: 5px 9px;
   border: 1px solid var(--hairline);
   border-radius: 999px;
   color: var(--text-2);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 10px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
 
-.project-footer {
+.project-card-foot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
   margin-top: auto;
   padding-top: 18px;
-  border-top: 1px solid var(--hairline);
 }
 
-.project-footer strong {
+.project-card-foot strong {
+  max-width: 100%;
   overflow-wrap: anywhere;
   color: var(--text-3);
   font-size: 10.5px;
@@ -924,17 +881,17 @@ section[id], #top { scroll-margin-top: 120px; }
   line-height: 1.45;
 }
 
-.project-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.project-links { display: flex; flex-wrap: wrap; gap: 7px; }
 
 .project-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 15px;
+  gap: 7px;
+  padding: 8px 13px;
   border: 1px solid var(--hairline);
   border-radius: 999px;
   color: var(--text);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
   transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
     transform var(--t-mid) var(--ease);
@@ -944,6 +901,28 @@ section[id], #top { scroll-margin-top: 120px; }
   transform: translateY(-2px);
   border-color: var(--acid-line);
   background: var(--acid-soft);
+}
+
+/* Scrub indicator - the only cue that the section is panning. */
+.pan-progress {
+  position: absolute;
+  bottom: 46px;
+  left: max(6vw, calc((100% - var(--shell-max)) / 2));
+  width: min(220px, 40vw);
+  height: 2px;
+  border-radius: 2px;
+  background: var(--hairline);
+  overflow: hidden;
+}
+
+.pan-progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--acid);
+  transform: scaleX(0);
+  transform-origin: left center;
 }
 
 /* -------------------------------------------------------------
@@ -1444,14 +1423,29 @@ html.has-custom-cursor button { cursor: none; }
 
   .nav-contact .btn-icon { background: rgba(255, 255, 255, 0.08); }
 
-  .project-grid { grid-template-columns: 1fr; }
-  .project-tile-open .project-tile-core { flex-direction: column; }
-  .project-tile-open .project-tile-visual {
-    width: auto;
-    aspect-ratio: 16 / 10;
-    border-right: 0;
-    border-bottom: 1px solid var(--hairline);
+  /* Below the pan breakpoint the section stops pinning, so it must not keep
+     a locked viewport height - it becomes a swipeable scroll-snap rail. */
+  .pan-wrap {
+    height: auto;
+    padding: 4px 0 8px;
   }
+
+  .pan-track {
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pan-track::-webkit-scrollbar { display: none; }
+
+  .project-card {
+    width: min(82vw, 400px);
+    scroll-snap-align: center;
+  }
+
+  .pan-progress { display: none; }
   .contact-bottom { flex-direction: column; align-items: flex-start; }
   .cert-row, .contact-roles { grid-template-columns: 1fr; }
   .evidence-content { grid-template-columns: 1fr; align-items: start; gap: 18px; }
@@ -1471,7 +1465,7 @@ html.has-custom-cursor button { cursor: none; }
   .proof-bar dl > div:nth-child(odd) { border-left: 0; padding-left: 0; }
   .project-metrics { grid-template-columns: 1fr 1fr; }
   .project-metrics > div:last-child { grid-column: span 2; }
-  .project-footer { align-items: flex-start; flex-direction: column; }
+  .project-card-foot { align-items: flex-start; flex-direction: column; }
   .timeline-item { grid-template-columns: 1fr; gap: 14px; }
   .cert-row li { align-items: flex-start; flex-direction: column; gap: 6px; }
   footer { align-items: flex-start; flex-direction: column; gap: 14px; }
@@ -1480,6 +1474,19 @@ html.has-custom-cursor button { cursor: none; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+
+  /* The pan ScrollTrigger never initialises under reduced motion, so without
+     this the track would sit at x:0 inside an overflow:hidden wrapper and the
+     last two projects would be unreachable. Fall back to a native rail. */
+  .pan-wrap { height: auto; padding: 4px 0 8px; }
+
+  .pan-track {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+
+  .project-card { scroll-snap-align: center; }
+  .pan-progress { display: none; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -1491,3 +1498,7 @@ html.has-custom-cursor button { cursor: none; }
 /* Lucide ships at stroke-width 2, which reads heavy against this type.
    The project already depends on it, so the family stays - the weight drops. */
 .lucide { stroke-width: 1.4; }
+
+/* SplitText line masks for the hero headline. */
+.hero-line-mask { display: block; overflow: hidden; }
+.hero-line { display: block; will-change: transform; }
