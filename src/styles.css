@@ -318,7 +318,9 @@ section[id], #top { scroll-margin-top: 120px; }
   text-transform: uppercase;
 }
 
-.eyebrow span {
+/* Scoped to the leading dot only. An unscoped `.eyebrow span` also caught the
+   cycling role spans and sized them to 5px. */
+.eyebrow > span:first-child {
   width: 5px;
   height: 5px;
   flex: none;
@@ -1454,3 +1456,22 @@ html.has-custom-cursor button { cursor: none; }
 /* SplitText line masks for the hero headline. */
 .hero-line-mask { display: block; overflow: hidden; }
 .hero-line { display: block; will-change: transform; }
+
+/* Cycling role in the hero eyebrow. All roles occupy the same grid cell, so the
+   pill sizes to the widest and never jumps width as they swap. Only the first
+   is visible by default - GSAP reveals the rest, so no-JS and reduced-motion
+   both land on a single readable role rather than six stacked on top of
+   each other. */
+.eyebrow-roles {
+  display: grid;
+  overflow: hidden;
+}
+
+.eyebrow-role {
+  grid-area: 1 / 1;
+  opacity: 0;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.eyebrow-role:first-child { opacity: 1; }

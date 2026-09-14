@@ -412,6 +412,37 @@ function App() {
       scrollTrigger: { trigger: '.hero', start: 'center center', end: 'bottom top', scrub: 1 },
     })
 
+    // Cycle the role in the eyebrow. Held long enough to read, swapped on the
+    // same masked-line language the headings use.
+    const roleEls = gsap.utils.toArray<HTMLElement>('.eyebrow-role')
+    if (roleEls.length > 1) {
+      gsap.set(roleEls, { opacity: 0, yPercent: 100 })
+      gsap.set(roleEls[0], { opacity: 1, yPercent: 0 })
+
+      const roleCycle = gsap.timeline({ repeat: -1 })
+      roleEls.forEach((role, i) => {
+        const next = roleEls[(i + 1) % roleEls.length]
+        roleCycle
+          .to(role, { duration: 2.6 })
+          .to(role, { yPercent: -100, opacity: 0, duration: 0.55, ease: EASE })
+          .fromTo(
+            next,
+            { yPercent: 100, opacity: 0 },
+            // Without this every fromTo applies its from-state at build time,
+            // which blanks all six roles before the timeline ever runs.
+            { yPercent: 0, opacity: 1, duration: 0.55, ease: EASE, immediateRender: false },
+            '<',
+          )
+      })
+
+      ScrollTrigger.create({
+        trigger: '.hero',
+        start: 'top bottom',
+        end: 'bottom top',
+        onToggle: (self) => (self.isActive ? roleCycle.play() : roleCycle.pause()),
+      })
+    }
+
     // Orbiting terms. Positions are computed per frame on an ellipse rather
     // than by rotating a container, because rotating a container would tumble
     // the whole ellipse instead of moving terms along it. Labels therefore need
@@ -602,7 +633,18 @@ function App() {
         <HeroBackdrop />
         <div className="hero-inner">
           <div className="hero-copy">
-            <p className="eyebrow"><span /> Solutions engineer</p>
+            {/* All six target roles cycle through one slot. Every role is in the
+                DOM, so screen readers and crawlers get the full list; CSS shows
+                only the first until GSAP takes over, which keeps it sane with
+                JS off or reduced motion on. */}
+            <p className="eyebrow">
+              <span />
+              <span className="eyebrow-roles">
+                {targetRoles.map((role) => (
+                  <span className="eyebrow-role" key={role}>{role}</span>
+                ))}
+              </span>
+            </p>
             <h1 id="hero-title">
               I keep critical <span className="inline-image" aria-hidden="true" /> systems running, and build what comes next.
             </h1>
