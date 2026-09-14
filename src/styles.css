@@ -445,11 +445,11 @@ section[id], #top { scroll-margin-top: 120px; }
   transform: translate(-50%, -50%);
 }
 
-.orbit-a { width: 196px; height: 196px; }
-.orbit-b { width: 336px; height: 336px; }
+.orbit-a { width: 188px; height: 188px; }
+.orbit-b { width: 324px; height: 324px; }
 
-/* Each ring is rotated by GSAP; the label inside counter-rotates by the same
-   amount, so terms ride the orbit without ever going upside down. */
+/* GSAP positions each term on the ellipse per frame. Nothing rotates, so
+   labels stay upright for free. */
 .orbit-ring {
   position: absolute;
   left: 50%;
@@ -486,8 +486,8 @@ section[id], #top { scroll-margin-top: 120px; }
   will-change: transform;
 }
 
-/* Inner ring reads as the closer, brighter layer. */
-.orbit-ring-0 .orbit-label {
+/* Alternate the accent so the ring keeps the two-tone read it had. */
+.orbit-term:nth-child(odd) .orbit-label {
   color: var(--acid);
   border-color: var(--acid-line);
   background: rgba(20, 26, 8, 0.82);

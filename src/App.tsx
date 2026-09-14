@@ -205,28 +205,16 @@ const targetRoles = [
 
 // Two counter-rotating rings of the things he actually works with.
 // Inner ring turns clockwise, outer anticlockwise, both slowly.
-const orbits = [
-  {
-    radius: 98,
-    duration: 58,
-    direction: 1,
-    terms: ['Graph RAG', 'Neo4j', 'Python', 'Multi-agent'],
-  },
-  {
-    radius: 168,
-    duration: 86,
-    direction: -1,
-    terms: [
-      'Reliability',
-      'Requirements',
-      'Shipped software',
-      'AWS',
-      'Trading desks',
-      'ITIL v4',
-      'Governance',
-    ],
-  },
-]
+// One elliptical orbit, sized to the panel (roughly 570x249) rather than a
+// circle - a circular path needs vertical room the panel does not have, which
+// is what pushed terms into each other and off the frame. Six is the most that
+// fit without labels touching at this radius.
+const orbit = {
+  rx: 200,
+  ry: 80,
+  duration: 64,
+  terms: ['Reliability', 'Applied AI', 'Requirements', 'Automation', 'Governance', 'Solution Design'],
+}
 
 const manifesto = 'I would rather learn a technology by shipping something with it than by reading about it. That is why the reliability work and the building work are the same job.'
 
@@ -424,35 +412,45 @@ function App() {
       scrollTrigger: { trigger: '.hero', start: 'center center', end: 'bottom top', scrub: 1 },
     })
 
-    // Orbiting terms. Each ring turns one way, its labels turn the other way at
-    // the same rate, so the text never tips over. Ambient speed on purpose -
-    // one revolution per minute-ish, not a spinner.
-    orbits.forEach((ring, index) => {
-      const ringEl = document.querySelector<HTMLElement>(`.orbit-ring-${index}`)
-      if (!ringEl) return
-      const labels = ringEl.querySelectorAll('.orbit-label')
-      const spin = gsap.to(ringEl, {
-        rotation: 360 * ring.direction,
-        duration: ring.duration,
+    // Orbiting terms. Positions are computed per frame on an ellipse rather
+    // than by rotating a container, because rotating a container would tumble
+    // the whole ellipse instead of moving terms along it. Labels therefore need
+    // no counter-rotation - they simply never rotate. sin(theta) doubles as a
+    // depth cue: terms at the back of the path sit smaller and dimmer.
+    const orbitTerms = gsap.utils.toArray<HTMLElement>('.orbit-term')
+    if (orbitTerms.length) {
+      const place = (progress: number) => {
+        orbitTerms.forEach((el, i) => {
+          const theta = (i / orbitTerms.length + progress) * Math.PI * 2
+          const depth = (Math.sin(theta) + 1) / 2
+          gsap.set(el, {
+            x: orbit.rx * Math.cos(theta),
+            y: orbit.ry * Math.sin(theta),
+            scale: 0.86 + depth * 0.14,
+            opacity: 0.45 + depth * 0.55,
+            zIndex: Math.round(depth * 10),
+          })
+        })
+      }
+      place(0)
+
+      const cycle = { t: 0 }
+      const spin = gsap.to(cycle, {
+        t: 1,
+        duration: orbit.duration,
         repeat: -1,
         ease: 'none',
+        onUpdate: () => place(cycle.t),
       })
-      const counter = gsap.to(labels, {
-        rotation: -360 * ring.direction,
-        duration: ring.duration,
-        repeat: -1,
-        ease: 'none',
-      })
+
       // Infinite loops are a battery cost when nobody is looking at them.
       ScrollTrigger.create({
         trigger: '.hero',
         start: 'top bottom',
         end: 'bottom top',
-        onToggle: (self) => {
-          if (self.isActive) { spin.play(); counter.play() } else { spin.pause(); counter.pause() }
-        },
+        onToggle: (self) => (self.isActive ? spin.play() : spin.pause()),
       })
-    })
+    }
 
     // Horizontal pan: the section pins and vertical scroll drives the track
     // sideways. Scroll length equals the track overflow, so the five cards cost
@@ -629,21 +627,13 @@ function App() {
             <div className="system-orbit orbit-a" />
             <div className="system-orbit orbit-b" />
 
-            {orbits.map((ring, ringIndex) => (
-              <div className={`orbit-ring orbit-ring-${ringIndex}`} key={ringIndex}>
-                {ring.terms.map((term, i) => (
-                  <span
-                    className="orbit-term"
-                    key={term}
-                    style={{
-                      transform: `rotate(${(360 / ring.terms.length) * i}deg) translate(${ring.radius}px) rotate(${-(360 / ring.terms.length) * i}deg)`,
-                    }}
-                  >
-                    <span className="orbit-label">{term}</span>
-                  </span>
-                ))}
-              </div>
-            ))}
+            <div className="orbit-ring">
+              {orbit.terms.map((term) => (
+                <span className="orbit-term" key={term}>
+                  <span className="orbit-label">{term}</span>
+                </span>
+              ))}
+            </div>
 
             <div className="system-core">MK</div>
           </div>
