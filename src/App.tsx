@@ -210,8 +210,8 @@ const targetRoles = [
 // is what pushed terms into each other and off the frame. Six is the most that
 // fit without labels touching at this radius.
 const orbit = {
-  rx: 200,
-  ry: 80,
+  rx: 186,
+  ry: 78,
   duration: 64,
   terms: ['Reliability', 'Applied AI', 'Requirements', 'Automation', 'Governance', 'Solution Design'],
 }
