@@ -1338,8 +1338,8 @@ html.has-custom-cursor button { cursor: none; }
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(58vw, 46vh * 1.14, 660px);
-  aspect-ratio: 604 / 530;
+  width: min(40vw, 62vh * 0.84, 470px);
+  aspect-ratio: 444 / 528;
   transform: translate(-50%, -52%);
   will-change: transform;
 }
@@ -1528,6 +1528,6 @@ html.has-custom-cursor button { cursor: none; }
 .eyebrow-role:first-child { opacity: 1; }
 
 @media (max-width: 560px) {
-  .loading-media { width: min(82vw, 40vh * 1.14, 420px); }
+  .loading-media { width: min(66vw, 52vh * 0.84, 330px); }
   .loading-count { font-size: clamp(3.4rem, 22vw, 6rem); right: 20px; bottom: 22px; }
 }
