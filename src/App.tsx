@@ -21,7 +21,7 @@ import {
   Play,
 } from 'lucide-react'
 import { ProjectVisual } from './ProjectVisual'
-import { HeroBackdrop } from './HeroBackdrop'
+import { WorldBackdrop } from './WorldBackdrop'
 import { CustomCursor } from './CustomCursor'
 import { LoadingIntro } from './LoadingIntro'
 import { HeroFigure } from './HeroFigure'
@@ -727,6 +727,9 @@ function App() {
     <main ref={main} id="top" className="page-shell">
       <LoadingIntro />
       <CustomCursor />
+      {/* The world the page travels through. Fixed and full-viewport, mounted
+          outside #smooth-wrapper so the smoother's transform cannot drag it. */}
+      <WorldBackdrop />
       <a className="skip-link" href="#work">Skip to main content</a>
       <Header />
 
@@ -736,8 +739,7 @@ function App() {
       <div id="smooth-wrapper">
         <div id="smooth-content">
 
-      <section className="hero" aria-labelledby="hero-title">
-        <HeroBackdrop />
+      <section className="hero" aria-labelledby="hero-title" data-cam="0">
         <div className="hero-inner">
           <div className="hero-copy">
             {/* All six target roles cycle through one slot. Every role is in the
@@ -792,7 +794,7 @@ function App() {
         </div>
       </section>
 
-      <section className="capabilities section-wrap" id="approach">
+      <section className="capabilities section-wrap" id="approach" data-cam="1">
         <div className="section-heading reveal">
           <h2>Reliability on one side, shipped software on the other.</h2>
           <p>
@@ -812,7 +814,7 @@ function App() {
         </div>
       </section>
 
-      <section className="manifesto section-wrap">
+      <section className="manifesto section-wrap" data-cam="2">
         <div className="manifesto-aside reveal">
           <p>Useful intelligence needs more than a model. It needs context, judgment, and operational discipline.</p>
         </div>
@@ -829,7 +831,7 @@ function App() {
           Below 821px, and under reduced motion, this degrades to a plain
           vertical list - pinning four extra viewport heights is the wrong
           trade on a phone. */}
-      <section className="work" id="work">
+      <section className="work" id="work" data-cam="3">
         <div className="work-heading section-wrap reveal">
           <div>
             <p className="eyebrow"><span /> Selected work</p>
@@ -899,7 +901,7 @@ function App() {
         </div>
       </section>
 
-      <section className="experience section-wrap" id="experience">
+      <section className="experience section-wrap" id="experience" data-cam="4">
         <div className="experience-layout">
           <div className="experience-heading reveal">
             <h2>Three years inside a bank&apos;s trading floor.</h2>
@@ -956,7 +958,7 @@ function App() {
         </div>
       </section>
 
-      <section className="skills section-wrap" id="skills">
+      <section className="skills section-wrap" id="skills" data-cam="5">
         <div className="section-heading reveal">
           <h2>What I work with.</h2>
           <p>Certified where it counts, and hands-on with the rest through production work or shipped side projects.</p>
@@ -984,14 +986,14 @@ function App() {
         </div>
       </section>
 
-      <section className="evidence section-wrap">
+      <section className="evidence section-wrap" data-cam="6">
         <div className="evidence-lead reveal">
           <h2>Outcomes that make the work matter.</h2>
         </div>
         <EvidenceCarousel />
       </section>
 
-      <section className="contact section-wrap" id="contact">
+      <section className="contact section-wrap" id="contact" data-cam="7">
         <div className="contact-inner reveal">
           <p className="eyebrow"><span /> Start a conversation</p>
           <h2>Have a complex system worth making reliable?</h2>
@@ -1016,7 +1018,7 @@ function App() {
         </div>
       </section>
 
-      <footer>
+      <footer data-cam="8">
         <p>Manish Kumar Kondoju</p>
         <p>Designed with intention. Built for clarity.</p>
         <a href="#top">Back to top <ArrowUpRight size={15} aria-hidden="true" /></a>

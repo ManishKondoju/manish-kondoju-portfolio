@@ -75,6 +75,17 @@ body {
   color: var(--text);
 }
 
+/* ThreeUI mount box. Not part of the ThreeUI package: the landing-page frame
+   is width/height 100%, so the host has to give it real dimensions. The
+   packaged document owns its own scrolling inside the sandboxed iframe. */
+.shader-frame {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+}
+
 /* Film grain. Fixed + pointer-events:none so it never repaints on scroll. */
 body::before {
   position: fixed;
@@ -540,8 +551,21 @@ section[id], #top { scroll-margin-top: 120px; }
   background: rgba(246, 243, 241, 0.92);
 }
 
-.hero-scene { position: absolute; inset: 0; z-index: 1; }
-.hero-scene-canvas { display: block; width: 100%; height: 100%; }
+/* The page-wide world. Fixed behind everything, and the smoother's content
+   is lifted above it explicitly: the canvas is positioned and the sections are
+   not, so without a stacking context of its own the canvas would paint over
+   all of them. */
+.world-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.world-scene-canvas { display: block; width: 100%; height: 100%; }
+
+#smooth-wrapper { position: relative; z-index: 1; }
+
 
 /* -------------------------------------------------------------
    Proof bar
