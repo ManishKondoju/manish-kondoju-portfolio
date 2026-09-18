@@ -338,13 +338,30 @@ function App() {
       })
     }
 
-    const intro = gsap.timeline({ defaults: { ease: EASE } })
+    // Held until the preloader starts clearing. It used to run on mount, which
+    // meant the whole hero animation played behind the overlay and the page was
+    // already static by the time anyone saw it.
+    const intro = gsap.timeline({ defaults: { ease: EASE }, paused: true })
     intro
       .from('.site-header', { y: -24, opacity: 0, duration: 0.8 })
       .from('.eyebrow', { y: 16, opacity: 0, duration: 0.7 }, '-=0.45')
       .from('.hero-line', { yPercent: 108, duration: 1.15, stagger: 0.11 }, '-=0.4')
       .from('.hero-intro, .hero-actions', { y: 26, opacity: 0, stagger: 0.1, duration: 0.9 }, '-=0.75')
       .from('.hero-system', { opacity: 0, scale: 0.96, duration: 1.2 }, '-=1')
+
+    // These are .from() tweens, so the hero is sitting at opacity 0 right now.
+    // If the release never arrives the page would stay blank, so every path
+    // out of here has to end in play(): the event, or a hard fallback.
+    let released = false
+    const releaseIntro = () => {
+      if (released) return
+      released = true
+      intro.play()
+    }
+    window.addEventListener('preloader:done', releaseIntro, { once: true })
+    // No preloader runs under reduced motion, so nothing would ever fire.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) releaseIntro()
+    const introFallback = window.setTimeout(releaseIntro, 6000)
 
     // Heavy fade-up: elements arrive with mass rather than popping in.
     gsap.utils.toArray<HTMLElement>('.reveal').forEach((element) => {
@@ -608,6 +625,10 @@ function App() {
     return () => {
       split?.revert()
       splits.forEach((sp) => sp.revert())
+    }
+    return () => {
+      window.removeEventListener('preloader:done', releaseIntro)
+      window.clearTimeout(introFallback)
     }
   }, { scope: main })
 

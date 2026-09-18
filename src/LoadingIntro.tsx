@@ -79,18 +79,31 @@ export function LoadingIntro() {
       })
       tl.to(counter, {
         value: 100,
-        duration: 0.45,
+        duration: 0.4,
         ease: 'power2.out',
         onUpdate: render,
       })
-        .to(root.current!.querySelector('.loading-count'), { opacity: 0, y: -14, duration: 0.4, ease: 'power2.in' }, '-=0.1')
-        .to(root.current!.querySelector('.loading-media'), { scale: 1.08, y: -18, duration: 0.8, ease: 'power2.inOut' }, '<')
+        // Let 100 actually register before anything starts leaving.
+        .to(root.current!.querySelector('.loading-count'), {
+          opacity: 0,
+          duration: 0.35,
+          ease: 'power2.inOut',
+        }, '+=0.18')
+        // The character is deliberately not transformed. Scaling and drifting
+        // it out drew attention to the overlay leaving instead of to the page
+        // arriving, and read as a lurch.
         .to(root.current, {
-          // Wipe up rather than a plain fade, so it hands off to the page.
-          clipPath: 'inset(0% 0% 100% 0%)',
-          duration: 0.75,
-          ease: 'power3.inOut',
-        }, '-=0.55')
+          opacity: 0,
+          duration: 0.65,
+          ease: 'power2.inOut',
+          // The page behind is the same paper colour, so this dissolves the
+          // character and reveals the hero rather than wiping a slab away.
+          onStart: () => {
+            // Released here, not on complete, so the hero animates in while the
+            // overlay is still clearing - a handoff rather than a hard cut.
+            window.dispatchEvent(new CustomEvent('preloader:done'))
+          },
+        }, '-=0.1')
     }
 
     const settle = () => {
