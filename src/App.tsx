@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -23,6 +24,7 @@ import { ProjectVisual } from './ProjectVisual'
 import { HeroBackdrop } from './HeroBackdrop'
 import { CustomCursor } from './CustomCursor'
 import { LoadingIntro } from './LoadingIntro'
+import { HeroFigure } from './HeroFigure'
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother, CustomEase, SplitText, useGSAP)
 
@@ -576,9 +578,9 @@ function App() {
       })
     }
 
-    // Sticky card stack: the section pins and each project slides up over the
-    // one before it, which shrinks and tilts back into a fanned pile - so the
-    // card you are reading is always the only one at full size.
+    // Sticky card stack: the section holds still and each project slides up
+    // over the one before it, which shrinks and tilts back into a fanned pile -
+    // so the card you are reading is always the only one at full size.
     const media = gsap.matchMedia()
 
     // This query must stay identical to the one in CSS that makes the deck a
@@ -599,12 +601,17 @@ function App() {
         scrollTrigger: {
           trigger: '.stack-wrap',
           start: 'top top',
-          // One viewport of scroll buys one card. end is a function so a
-          // resize (or a browser chrome change on the way down) re-measures
-          // instead of pinning against a stale viewport height.
-          end: () => `+=${window.innerHeight * (cards.length - 1)}`,
-          pin: true,
-          pinSpacing: true,
+          end: 'bottom bottom',
+          // Only the one-viewport stage is pinned, and it adds no spacing of
+          // its own: the scroll length is the wrapper's CSS height (one
+          // viewport per card), which is why end is simply 'bottom bottom'.
+          // Reserving that height in CSS rather than through GSAP's pin-spacer
+          // is deliberate - StrictMode's double mount can leave an orphaned
+          // spacer behind, and when the layout depends on that spacer the
+          // sections below collapse 3,500px up over the card deck. With the
+          // height in CSS, a stale spacer costs nothing.
+          pin: '.stack-stage',
+          pinSpacing: false,
           scrub: 0.5,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
@@ -624,12 +631,13 @@ function App() {
         stack.to(next, { yPercent: 0 }, index)
       })
 
-      // No manual cleanup on purpose. Killing the ScrollTrigger by hand here
-      // leaves its pin-spacer in the DOM (kill() does not revert the pin
-      // unless asked), and StrictMode's second mount then pins the wrapper
-      // *inside* that orphan - two nested spacers, only one of which reserves
-      // the pinned scroll distance, so every section below overlaps the deck.
-      // gsap.matchMedia reverts the timeline, the pin and the gsap.sets above.
+      // kill(true) - the revert flag is what takes the pinned element back out
+      // of its spacer. Without it a stale spacer is left in the DOM on every
+      // remount.
+      return () => {
+        stack.scrollTrigger?.kill(true)
+        stack.kill()
+      }
     })
 
     gsap.fromTo(
@@ -765,15 +773,7 @@ function App() {
               element rather than two competing ones. Depth already drives each
               term's z-index, so terms at the back of the path pass behind him. */}
           <div className="hero-stage" aria-hidden="true">
-          <img
-            className="hero-figure"
-            src="/hero-figure.webp"
-            width={842}
-            height={1402}
-            alt=""
-            fetchPriority="high"
-            decoding="async"
-          />
+          <HeroFigure />
           <div className="hero-system">
             <div className="system-orbit orbit-a" />
             <div className="system-orbit orbit-b" />
@@ -838,59 +838,64 @@ function App() {
           <p>Five projects taken from an idea to working software - with the numbers that show they actually work.</p>
         </div>
 
-        <div className="stack-wrap">
-          <div className="stack-deck">
-            {projects.map((project, index) => (
-              <article className="project-card" key={project.name}>
-                <div className="project-card-core">
-                  <div className="project-card-visual">
-                    <ProjectVisual variant={project.visual} />
-                  </div>
+        {/* One viewport of scroll per card - read by the CSS that gives the
+            wrapper its height, so adding a project extends the section
+            automatically. */}
+        <div className="stack-wrap" style={{ '--stack-count': projects.length } as CSSProperties}>
+          <div className="stack-stage">
+            <div className="stack-deck">
+              {projects.map((project, index) => (
+                <article className="project-card" key={project.name}>
+                  <div className="project-card-core">
+                    <div className="project-card-visual">
+                      <ProjectVisual variant={project.visual} />
+                    </div>
 
-                  <span className="project-card-index">
-                    {String(index + 1).padStart(2, '0')} / {String(projects.length).padStart(2, '0')}
-                  </span>
+                    <span className="project-card-index">
+                      {String(index + 1).padStart(2, '0')} / {String(projects.length).padStart(2, '0')}
+                    </span>
 
-                  <div className="project-card-body">
-                    <p className="project-card-kicker">{project.kicker}</p>
-                    <h3>{project.name}</h3>
-                    <p className="project-card-desc">{project.description}</p>
+                    <div className="project-card-body">
+                      <p className="project-card-kicker">{project.kicker}</p>
+                      <h3>{project.name}</h3>
+                      <p className="project-card-desc">{project.description}</p>
 
-                    <dl className="project-metrics">
-                      {project.metrics.map((metric) => (
-                        <div key={metric.label}>
-                          <dt>{metric.value}</dt>
-                          <dd>{metric.label}</dd>
+                      <dl className="project-metrics">
+                        {project.metrics.map((metric) => (
+                          <div key={metric.label}>
+                            <dt>{metric.value}</dt>
+                            <dd>{metric.label}</dd>
+                          </div>
+                        ))}
+                      </dl>
+
+                      <ul className="project-card-stack">
+                        {project.stack.map((tool) => <li key={tool}>{tool}</li>)}
+                      </ul>
+
+                      <div className="project-card-foot">
+                        <strong>{project.detail}</strong>
+                        <div className="project-links">
+                          {project.demo && (
+                            <a className="project-link" href={project.demo} target="_blank" rel="noreferrer">
+                              <ExternalLink size={14} aria-hidden="true" /> Live demo
+                            </a>
+                          )}
+                          {project.repo && (
+                            <a className="project-link" href={project.repo} target="_blank" rel="noreferrer">
+                              <Github size={14} aria-hidden="true" /> Source
+                            </a>
+                          )}
                         </div>
-                      ))}
-                    </dl>
-
-                    <ul className="project-card-stack">
-                      {project.stack.map((tool) => <li key={tool}>{tool}</li>)}
-                    </ul>
-
-                    <div className="project-card-foot">
-                      <strong>{project.detail}</strong>
-                      <div className="project-links">
-                        {project.demo && (
-                          <a className="project-link" href={project.demo} target="_blank" rel="noreferrer">
-                            <ExternalLink size={14} aria-hidden="true" /> Live demo
-                          </a>
-                        )}
-                        {project.repo && (
-                          <a className="project-link" href={project.repo} target="_blank" rel="noreferrer">
-                            <Github size={14} aria-hidden="true" /> Source
-                          </a>
-                        )}
                       </div>
                     </div>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
 
-          <div className="stack-progress" aria-hidden="true"><span /></div>
+            <div className="stack-progress" aria-hidden="true"><span /></div>
+          </div>
         </div>
       </section>
 
