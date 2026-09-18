@@ -1,36 +1,46 @@
 /* =============================================================
    Manish Kumar Kondoju - portfolio
-   Visual language: dark premium / high-end agency.
-   Vibe archetype: Ethereal Glass (OLED near-black, vantablack cards,
-   hairline borders, heavy macro-whitespace).
+   Visual language: warm light, high-end agency.
+   Palette sampled from the preloader video (warm taupe-grey base, espresso
+   darks, one blue accent from the polo), then lifted to usable page
+   luminance and contrast-checked.
    Layout archetype: Editorial split hero + asymmetric bento.
 
-   Accent: ONE colour (acid) across the entire page. The previous
-   blue -> violet mesh was the generic "AI gradient" tell and is gone.
+   Accent: ONE colour across the entire page. --acid is the literal video
+   blue and stays decorative; --acid-ink is the darkened form used wherever
+   text sits on or beside it.
    ============================================================= */
 
 :root {
-  /* Surfaces - never pure black, never pure white */
-  --void: #050506;
-  --surface: #0a0a0c;
-  --surface-2: #101013;
-  --surface-3: #16161a;
+  /* Surfaces. Sampled from the preloader video (warm taupe-grey) and lifted
+     to usable page luminance. Never pure white, never pure black. */
+  --void: #efebe8;
+  --surface: #f6f3f1;
+  --surface-2: #e9e4e0;
+  --surface-3: #ded7d3;
 
-  /* Double-bezel materials */
-  --shell: rgba(255, 255, 255, 0.035);
-  --hairline: rgba(255, 255, 255, 0.085);
-  --hairline-strong: rgba(255, 255, 255, 0.16);
-  --inner-lip: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  /* Double-bezel materials - dark-on-light now, so the hairlines invert. */
+  --shell: rgba(36, 27, 25, 0.035);
+  --hairline: rgba(36, 27, 25, 0.12);
+  --hairline-strong: rgba(36, 27, 25, 0.24);
+  --inner-lip: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 
-  /* Type */
-  --text: #f3f2ef;
-  --text-2: rgba(243, 242, 239, 0.62);
-  --text-3: rgba(243, 242, 239, 0.54);
+  /* Type. All three verified AA on paper, card and sunken surfaces. */
+  --text: #241b19;
+  --text-2: #5b4f4a;
+  --text-3: #6b5e58;
 
-  /* The single accent */
-  --acid: #d7f85c;
-  --acid-soft: rgba(215, 248, 92, 0.16);
-  --acid-line: rgba(215, 248, 92, 0.34);
+  /* One accent, taken from the polo in the video. The raw blue fails contrast
+     as text (3.2:1) and as a CTA fill (3.8:1), so it stays decorative and
+     --acid-ink carries anything with text on or beside it. */
+  --acid: #5286c6;
+  --acid-ink: #2f5f96;
+  --acid-soft: rgba(82, 134, 198, 0.14);
+  --acid-line: rgba(82, 134, 198, 0.42);
+
+  /* Shadows tint to the surface hue - pure black reads dirty on warm light. */
+  --shadow-soft: 0 18px 50px rgba(63, 48, 43, 0.10);
+  --shadow-lift: 0 30px 90px rgba(63, 48, 43, 0.13);
 
   /* Shape system (documented, applied everywhere):
      shells 32px / cores 26px (concentric) / pills full / chips full */
@@ -72,7 +82,7 @@ body::before {
   z-index: 60;
   pointer-events: none;
   content: '';
-  opacity: 0.035;
+  opacity: 0.02;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
 }
 
@@ -86,7 +96,7 @@ button, a {
 
 button:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--acid);
+  outline: 2px solid var(--acid-ink);
   outline-offset: 3px;
   border-radius: 6px;
 }
@@ -98,8 +108,8 @@ a:focus-visible {
   left: 14px;
   padding: 13px 22px;
   border-radius: 999px;
-  color: #0a0a0c;
-  background: var(--acid);
+  color: #fff;
+  background: var(--acid-ink);
   font-size: 13px;
   font-weight: 600;
   transform: translateY(-180%);
@@ -131,8 +141,8 @@ section[id], #top { scroll-margin-top: 120px; }
   padding: 7px 7px 7px 9px;
   border: 1px solid var(--hairline);
   border-radius: 999px;
-  background: rgba(10, 10, 12, 0.62);
-  box-shadow: var(--inner-lip), 0 20px 60px rgba(0, 0, 0, 0.5);
+  background: rgba(246, 243, 241, 0.72);
+  box-shadow: var(--inner-lip), var(--shadow-soft);
   backdrop-filter: blur(22px) saturate(150%);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
   transform: translateX(-50%);
@@ -141,7 +151,7 @@ section[id], #top { scroll-margin-top: 120px; }
 
 .site-header.is-scrolled {
   border-color: var(--hairline-strong);
-  background: rgba(8, 8, 10, 0.84);
+  background: rgba(246, 243, 241, 0.90);
 }
 
 .monogram {
@@ -159,7 +169,7 @@ section[id], #top { scroll-margin-top: 120px; }
   transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
 }
 
-.monogram:hover { color: #0a0a0c; background: var(--acid); border-color: var(--acid); }
+.monogram:hover { color: #fff; background: var(--acid-ink); border-color: var(--acid-ink); }
 
 .nav-links {
   display: flex;
@@ -182,7 +192,7 @@ section[id], #top { scroll-margin-top: 120px; }
 
 .nav-links > a:not(.nav-contact):hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(36, 27, 25, 0.055);
 }
 
 .nav-contact {
@@ -192,8 +202,8 @@ section[id], #top { scroll-margin-top: 120px; }
   gap: 9px;
   padding: 0 6px 0 16px;
   border-radius: 999px;
-  color: #0a0a0c;
-  background: var(--acid);
+  color: #fff;
+  background: var(--acid-ink);
   font-size: 13px;
   font-weight: 600;
   transition: transform var(--t-fast) var(--ease);
@@ -209,17 +219,17 @@ section[id], #top { scroll-margin-top: 120px; }
   flex: none;
   place-items: center;
   border-radius: 50%;
-  background: rgba(10, 10, 12, 0.14);
+  background: rgba(255, 255, 255, 0.20);
   transition: transform var(--t-mid) var(--ease), background var(--t-mid) var(--ease);
 }
 
 .nav-contact:hover .btn-icon,
 .button:hover .btn-icon {
   transform: translate(2px, -2px);
-  background: rgba(10, 10, 12, 0.22);
+  background: rgba(255, 255, 255, 0.30);
 }
 
-.button-quiet:hover .btn-icon { background: rgba(255, 255, 255, 0.14); }
+.button-quiet:hover .btn-icon { background: rgba(36, 27, 25, 0.10); }
 
 /* Hamburger that morphs into an X rather than swapping glyphs. */
 .menu-button {
@@ -264,7 +274,7 @@ section[id], #top { scroll-margin-top: 120px; }
   overflow: hidden;
   padding: 150px max(6vw, calc((100% - var(--shell-max)) / 2)) 90px;
   background:
-    radial-gradient(120% 90% at 8% 0%, rgba(255, 255, 255, 0.055), transparent 55%),
+    radial-gradient(120% 90% at 8% 0%, rgba(255, 255, 255, 0.85), transparent 58%),
     radial-gradient(90% 70% at 92% 8%, var(--acid-soft), transparent 60%),
     var(--void);
 }
@@ -309,7 +319,7 @@ section[id], #top { scroll-margin-top: 120px; }
   padding: 6px 13px 6px 11px;
   border: 1px solid var(--hairline);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.55);
   color: var(--text-2);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 10.5px;
@@ -348,8 +358,8 @@ section[id], #top { scroll-margin-top: 120px; }
   vertical-align: -0.06em;
   background:
     radial-gradient(circle at 72% 30%, rgba(255, 255, 255, 0.85) 0 2px, transparent 3px),
-    linear-gradient(120deg, rgba(215, 248, 92, 0.32), rgba(215, 248, 92, 0.06));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    linear-gradient(120deg, rgba(82, 134, 198, 0.55), rgba(82, 134, 198, 0.15));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .hero-intro {
@@ -383,16 +393,16 @@ section[id], #top { scroll-margin-top: 120px; }
 
 .button:active { transform: scale(0.98); }
 
-.button-primary { color: #0a0a0c; background: var(--acid); border-color: var(--acid); }
-.button-primary:hover { background: #e4ff7d; }
+.button-primary { color: #fff; background: var(--acid-ink); border-color: var(--acid-ink); }
+.button-primary:hover { background: #26507f; }
 
 .button-quiet {
   color: var(--text);
   border-color: var(--hairline-strong);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.55);
 }
 
-.button-quiet:hover { background: rgba(255, 255, 255, 0.07); border-color: var(--hairline-strong); }
+.button-quiet:hover { background: rgba(36, 27, 25, 0.065); border-color: var(--hairline-strong); }
 
 /* Hero system graphic - double-bezel shell around a live panel. */
 .hero-system {
@@ -403,7 +413,7 @@ section[id], #top { scroll-margin-top: 120px; }
   border: 1px solid var(--hairline);
   border-radius: var(--r-shell);
   background: var(--shell);
-  box-shadow: var(--inner-lip), 0 40px 120px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--inner-lip), var(--shadow-lift);
 }
 
 .hero-system::before {
@@ -430,9 +440,9 @@ section[id], #top { scroll-margin-top: 120px; }
   height: 74px;
   place-items: center;
   border-radius: 50%;
-  color: #0a0a0c;
-  background: var(--acid);
-  box-shadow: 0 0 70px rgba(215, 248, 92, 0.34);
+  color: #fff;
+  background: var(--acid-ink);
+  box-shadow: 0 10px 34px rgba(47, 95, 150, 0.30);
   font-weight: 700;
   font-size: 16px;
   transform: translate(-50%, -50%);
@@ -477,7 +487,7 @@ section[id], #top { scroll-margin-top: 120px; }
   border: 1px solid var(--hairline);
   border-radius: 999px;
   color: var(--text-2);
-  background: rgba(10, 10, 12, 0.82);
+  background: rgba(246, 243, 241, 0.88);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   /* Display sans, not mono. Mono micro-labels with wide tracking are the
@@ -492,9 +502,10 @@ section[id], #top { scroll-margin-top: 120px; }
 
 /* Alternate the accent so the ring keeps the two-tone read it had. */
 .orbit-term:nth-child(odd) .orbit-label {
-  color: var(--acid);
+  /* --acid is only 3.2:1 on paper; the darkened form clears AA at this size. */
+  color: var(--acid-ink);
   border-color: var(--acid-line);
-  background: rgba(20, 26, 8, 0.82);
+  background: rgba(246, 243, 241, 0.92);
 }
 
 .hero-scene { position: absolute; inset: 0; z-index: 1; }
@@ -584,14 +595,14 @@ section[id], #top { scroll-margin-top: 120px; }
 
 .capability-medium {
   background:
-    radial-gradient(80% 70% at 15% 90%, rgba(255, 255, 255, 0.07), transparent 60%),
+    radial-gradient(80% 70% at 15% 90%, rgba(36, 27, 25, 0.065), transparent 60%),
     var(--surface);
 }
 
 .capability-sage {
   border-color: var(--acid-line);
   background:
-    linear-gradient(150deg, rgba(215, 248, 92, 0.1), transparent 62%),
+    linear-gradient(150deg, rgba(82, 134, 198, 0.12), transparent 62%),
     var(--surface-2);
 }
 
@@ -691,7 +702,7 @@ section[id], #top { scroll-margin-top: 120px; }
   border: 1px solid var(--hairline);
   border-radius: var(--r-shell);
   background: var(--shell);
-  box-shadow: var(--inner-lip), 0 30px 90px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--inner-lip), var(--shadow-lift);
   transition: border-color var(--t-mid) var(--ease);
 }
 
@@ -719,7 +730,7 @@ section[id], #top { scroll-margin-top: 120px; }
   overflow: hidden;
   border-bottom: 1px solid var(--hairline);
   background:
-    radial-gradient(80% 70% at 50% 40%, rgba(255, 255, 255, 0.05), transparent 65%),
+    radial-gradient(80% 70% at 50% 40%, rgba(255, 255, 255, 0.75), transparent 68%),
     var(--surface-3);
 }
 
@@ -982,7 +993,7 @@ section[id], #top { scroll-margin-top: 120px; }
   border: 1px solid var(--hairline);
   border-radius: 999px;
   color: var(--text-2);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.5);
   font-size: 12px;
   font-weight: 500;
 }
@@ -1053,7 +1064,7 @@ section[id], #top { scroll-margin-top: 120px; }
   border: 1px solid var(--hairline);
   border-radius: var(--r-shell);
   background: var(--shell);
-  box-shadow: var(--inner-lip), 0 30px 90px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--inner-lip), var(--shadow-lift);
 }
 
 .evidence-counter {
@@ -1315,21 +1326,58 @@ html.has-custom-cursor button { cursor: none; }
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: grid;
-  place-items: center;
+  overflow: hidden;
   background: var(--void);
-  opacity: 1;
-  transition: opacity 500ms var(--ease);
+  clip-path: inset(0% 0% 0% 0%);
 }
 
-.loading-intro.is-leaving { opacity: 0; }
-
-.loading-mark {
-  color: var(--acid);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
+/* The subject is a transparent-background cut-out, centred and sized to a
+   share of the viewport - not a full-bleed plate. It sits directly on the
+   page's own paper colour so the handoff to the site is seamless. */
+.loading-media {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(58vw, 46vh * 1.14, 660px);
+  aspect-ratio: 604 / 530;
+  transform: translate(-50%, -52%);
+  will-change: transform;
 }
+
+.loading-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* A soft ground shadow so the cut-out sits on the page rather than floating. */
+.loading-media::after {
+  position: absolute;
+  left: 50%;
+  bottom: -3%;
+  width: 62%;
+  height: 7%;
+  content: '';
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(63, 48, 43, 0.20), transparent 72%);
+  transform: translateX(-50%);
+}
+
+.loading-count {
+  position: absolute;
+  right: clamp(24px, 5vw, 78px);
+  bottom: clamp(24px, 5vh, 60px);
+  color: var(--text);
+  font-size: clamp(4.5rem, 15vw, 13rem);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  will-change: transform, opacity;
+}
+
+
 
 /* -------------------------------------------------------------
    Responsive - asymmetry collapses to a single column
@@ -1359,7 +1407,7 @@ html.has-custom-cursor button { cursor: none; }
     justify-content: center;
     gap: 6px;
     padding: 88px 26px;
-    background: rgba(5, 5, 6, 0.94);
+    background: rgba(239, 235, 232, 0.97);
     backdrop-filter: blur(28px);
     -webkit-backdrop-filter: blur(28px);
   }
@@ -1379,7 +1427,7 @@ html.has-custom-cursor button { cursor: none; }
     font-weight: 500;
   }
 
-  .nav-contact .btn-icon { background: rgba(255, 255, 255, 0.08); }
+  .nav-contact .btn-icon { background: rgba(36, 27, 25, 0.08); }
 
   /* Below the pan breakpoint the section stops pinning, so it must not keep
      a locked viewport height - it becomes a swipeable scroll-snap rail. */
@@ -1475,3 +1523,8 @@ html.has-custom-cursor button { cursor: none; }
 }
 
 .eyebrow-role:first-child { opacity: 1; }
+
+@media (max-width: 560px) {
+  .loading-media { width: min(82vw, 40vh * 1.14, 420px); }
+  .loading-count { font-size: clamp(3.4rem, 22vw, 6rem); right: 20px; bottom: 22px; }
+}

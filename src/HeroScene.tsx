@@ -10,7 +10,7 @@ import * as THREE from 'three'
 
 // One accent, page-wide. The old blue/violet/cyan mix was the generic
 // "AI gradient" palette; particles are now off-white with acid highlights.
-const PALETTE = ['#f3f2ef', '#f3f2ef', '#8f8f8a', '#d7f85c', '#d7f85c']
+const PALETTE = ['#5b4f4a', '#6b5e58', '#8a7d76', '#5286c6', '#2f5f96']
 
 function makeSprite() {
   const size = 128
@@ -85,7 +85,7 @@ function Layer({
         map={sprite}
         vertexColors
         transparent
-        opacity={0.75}
+        opacity={0.34}
         depthWrite={false}
         blending={THREE.AdditiveBlending}
         sizeAttenuation

@@ -450,13 +450,28 @@ function App() {
     // depth cue: terms at the back of the path sit smaller and dimmer.
     const orbitTerms = gsap.utils.toArray<HTMLElement>('.orbit-term')
     if (orbitTerms.length) {
+      // Radii are measured from the panel at runtime. They were hardcoded, and
+      // when the panel changed shape the path overflowed it and clipped labels.
+      let rx = 0
+      let ry = 0
+      const measure = () => {
+        const panel = document.querySelector<HTMLElement>('.hero-system')
+        if (!panel) return
+        const widest = Math.max(
+          ...orbitTerms.map((t) => t.firstElementChild?.getBoundingClientRect().width ?? 0),
+        )
+        rx = Math.max(70, panel.clientWidth / 2 - widest / 2 - 10)
+        ry = Math.max(46, panel.clientHeight / 2 - 24)
+      }
+      measure()
+
       const place = (progress: number) => {
         orbitTerms.forEach((el, i) => {
           const theta = (i / orbitTerms.length + progress) * Math.PI * 2
           const depth = (Math.sin(theta) + 1) / 2
           gsap.set(el, {
-            x: orbit.rx * Math.cos(theta),
-            y: orbit.ry * Math.sin(theta),
+            x: rx * Math.cos(theta),
+            y: ry * Math.sin(theta),
             scale: 0.86 + depth * 0.14,
             opacity: 0.45 + depth * 0.55,
             zIndex: Math.round(depth * 10),
@@ -473,6 +488,12 @@ function App() {
         ease: 'none',
         onUpdate: () => place(cycle.t),
       })
+
+      const onResize = () => {
+        measure()
+        place(cycle.t)
+      }
+      window.addEventListener('resize', onResize)
 
       // Infinite loops are a battery cost when nobody is looking at them.
       ScrollTrigger.create({
