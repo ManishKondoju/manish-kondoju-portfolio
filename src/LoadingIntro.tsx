@@ -44,12 +44,27 @@ export function LoadingIntro() {
       }
     }
 
-    // Ease toward the lower of "what has really loaded" and "how far the
-    // minimum runtime has got", so it never races ahead of either.
+    // The count is paced by time, not by the load signals directly. Chasing
+    // realProgress() made it lurch: those signals are a step function (0, .4,
+    // .8, 1), so the number sprinted to each plateau then sat still waiting for
+    // the next one. Here it advances on a continuous ease-out, and honesty
+    // comes from the ceiling instead - it cannot reach 100 until the page is
+    // actually ready, and if loading outlasts the ramp it creeps rather than
+    // freezing. Monotonic by construction, so it can never tick backwards.
+    const CEILING = 96
     const ticker = () => {
-      const elapsed = (performance.now() - start) / MIN_MS
-      const target = Math.min(realProgress(), elapsed) * 100
-      counter.value += (target - counter.value) * 0.08
+      const t = (performance.now() - start) / MIN_MS
+      let target: number
+      if (t <= 1) {
+        // Smoothstep, not ease-out. Ease-out is steepest at t=0, which made the
+        // count sprint 1 -> 9 -> 30 in the first 600ms before settling; this
+        // eases in and out, so the cadence is even end to end.
+        target = t * t * (3 - 2 * t) * CEILING
+      } else {
+        // Still waiting on a real signal: inch through the last few points.
+        target = CEILING + Math.min(3, (t - 1) * 1.1)
+      }
+      counter.value = Math.max(counter.value, target)
       render()
     }
     gsap.ticker.add(ticker)
