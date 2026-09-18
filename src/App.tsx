@@ -390,7 +390,62 @@ function App() {
       })
     }
     waveIn('.capability-grid', '.capability-card')
-    waveIn('.skill-grid', '.skill-group')
+
+    // The tool cards assemble instead of fading up: each one starts pushed out
+    // from the middle of the grid and set back on the z-axis, then converges
+    // into place as the section arrives. Travel is proportional to how far the
+    // card sits from the grid centre, so the outer cards move furthest and the
+    // toolset reads as coming together. Replaces the waveIn stagger this grid
+    // used to share with the capability cards.
+    const skillGrid = document.querySelector<HTMLElement>('.skill-grid')
+    if (skillGrid) {
+      // Measured once here, into plain numbers, rather than through
+      // function-based tween values with invalidateOnRefresh. Those re-read
+      // layout from inside ScrollTrigger's own refresh pass, which re-entered
+      // the refresh and left the pinned work section without its pin spacing -
+      // every section below it then scrolled straight over the card stack.
+      // Offsets come from layout geometry (offsetLeft/offsetTop), not
+      // getBoundingClientRect, so they are unaffected by the transforms this
+      // tween applies. They are ratios of the grid box, so they stay sensible
+      // if a resize changes the column count without a re-measure; only the
+      // starting displacement drifts slightly, and it animates to 0 regardless.
+      const gridMidX = skillGrid.offsetLeft + skillGrid.offsetWidth / 2
+      const gridMidY = skillGrid.offsetTop + skillGrid.offsetHeight / 2
+
+      gsap.utils.toArray<HTMLElement>('.skill-group').forEach((card) => {
+        const fromCentreX =
+          (card.offsetLeft + card.offsetWidth / 2 - gridMidX) / (skillGrid.offsetWidth || 1)
+        const fromCentreY =
+          (card.offsetTop + card.offsetHeight / 2 - gridMidY) / (skillGrid.offsetHeight || 1)
+
+        gsap.fromTo(
+          card,
+          {
+            x: fromCentreX * 320,
+            y: fromCentreY * 110 + 44,
+            z: -240,
+            rotateY: fromCentreX * -10,
+            scale: 0.9,
+            opacity: 0,
+          },
+          {
+            x: 0,
+            y: 0,
+            z: 0,
+            rotateY: 0,
+            scale: 1,
+            opacity: 1,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: skillGrid,
+              start: 'top 92%',
+              end: 'center 62%',
+              scrub: 0.6,
+            },
+          },
+        )
+      })
+    }
 
     // Section headings get the same masked-line treatment as the hero, so every
     // major moment on the page opens the same way.
@@ -521,28 +576,36 @@ function App() {
       })
     }
 
-    // Horizontal pan: the section pins and vertical scroll drives the track
-    // sideways. Scroll length equals the track overflow, so the five cards cost
-    // about as much scroll as the grid they replaced.
+    // Sticky card stack: the section pins and each project slides up over the
+    // one before it, which shrinks and tilts back into a fanned pile - so the
+    // card you are reading is always the only one at full size.
     const media = gsap.matchMedia()
 
-    media.add('(min-width: 900px)', () => {
-      const wrap = document.querySelector<HTMLElement>('.pan-wrap')
-      const track = document.querySelector<HTMLElement>('.pan-track')
-      const bar = document.querySelector<HTMLElement>('.pan-progress span')
-      if (!wrap || !track) return
+    // This query must stay identical to the one in CSS that makes the deck a
+    // clipped box and the cards absolute. If the two ever disagree, the cards
+    // sit stacked on top of each other with no animation to separate them.
+    media.add('(min-width: 821px) and (prefers-reduced-motion: no-preference)', () => {
+      const cards = gsap.utils.toArray<HTMLElement>('.project-card')
+      const bar = document.querySelector<HTMLElement>('.stack-progress span')
+      if (cards.length < 2) return
 
-      const distance = () => Math.max(0, track.scrollWidth - window.innerWidth)
+      // Card one is in frame; the rest wait a full deck-height below, clipped
+      // by the deck's overflow until their turn.
+      gsap.set(cards[0], { yPercent: 0, scale: 1, rotate: 0 })
+      gsap.set(cards.slice(1), { yPercent: 100, scale: 1, rotate: 0 })
 
-      const pan = gsap.to(track, {
-        x: () => -distance(),
-        ease: 'none',
+      const stack = gsap.timeline({
+        defaults: { duration: 1, ease: 'none' },
         scrollTrigger: {
-          trigger: wrap,
+          trigger: '.stack-wrap',
           start: 'top top',
-          end: () => `+=${distance()}`,
+          // One viewport of scroll buys one card. end is a function so a
+          // resize (or a browser chrome change on the way down) re-measures
+          // instead of pinning against a stale viewport height.
+          end: () => `+=${window.innerHeight * (cards.length - 1)}`,
           pin: true,
-          scrub: 1,
+          pinSpacing: true,
+          scrub: 0.5,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             if (bar) gsap.set(bar, { scaleX: self.progress })
@@ -550,29 +613,23 @@ function App() {
         },
       })
 
-      // Cards lift as they reach the middle of the viewport, so the one you are
-      // reading is the one with weight.
-      const cards = gsap.utils.toArray<HTMLElement>('.project-card')
-      cards.forEach((card) => {
-        gsap.fromTo(
-          card,
-          { scale: 0.9, opacity: 0.32 },
-          {
-            scale: 1,
-            opacity: 1,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: card,
-              containerAnimation: pan,
-              start: 'left 88%',
-              end: 'center 58%',
-              scrub: true,
-            },
-          },
-        )
+      cards.forEach((card, index) => {
+        const next = cards[index + 1]
+        if (!next) return
+
+        // The tilt alternates so the pile fans out. Rotating every card the
+        // same way would park each one exactly behind the last and the depth
+        // would be invisible.
+        stack.to(card, { scale: 0.72, rotate: index % 2 ? -4.5 : 4.5 }, index)
+        stack.to(next, { yPercent: 0 }, index)
       })
 
-      return () => pan.kill()
+      // No manual cleanup on purpose. Killing the ScrollTrigger by hand here
+      // leaves its pin-spacer in the DOM (kill() does not revert the pin
+      // unless asked), and StrictMode's second mount then pins the wrapper
+      // *inside* that orphan - two nested spacers, only one of which reserves
+      // the pinned scroll distance, so every section below overlaps the deck.
+      // gsap.matchMedia reverts the timeline, the pin and the gsap.sets above.
     })
 
     gsap.fromTo(
@@ -704,10 +761,20 @@ function App() {
               </a>
             </div>
           </div>
-          {/* Everything he works with, orbiting the initials. Two rings turn at
-              different speeds and directions; each label counter-rotates so the
-              text stays upright as its ring carries it around. */}
-          <div className="hero-system" aria-hidden="true">
+          {/* Figure and orbit share one centre, so they read as a single focal
+              element rather than two competing ones. Depth already drives each
+              term's z-index, so terms at the back of the path pass behind him. */}
+          <div className="hero-stage" aria-hidden="true">
+          <img
+            className="hero-figure"
+            src="/hero-figure.webp"
+            width={842}
+            height={1402}
+            alt=""
+            fetchPriority="high"
+            decoding="async"
+          />
+          <div className="hero-system">
             <div className="system-orbit orbit-a" />
             <div className="system-orbit orbit-b" />
 
@@ -720,6 +787,7 @@ function App() {
             </div>
 
             <div className="system-core">MK</div>
+          </div>
           </div>
         </div>
       </section>
@@ -755,11 +823,12 @@ function App() {
         </p>
       </section>
 
-      {/* Horizontal pan. The section pins and vertical scroll drives the track
-          sideways, so every project gets a full-attention moment and its numbers
-          sit on the card face rather than behind a click. Below 900px this
-          degrades to a native scroll-snap carousel - hijacking touch scroll is
-          the wrong trade on a phone. */}
+      {/* Sticky card stack. The section pins and each project slides up over
+          the one before it, so every card gets a full-attention moment at full
+          size and its numbers sit on the card face rather than behind a click.
+          Below 821px, and under reduced motion, this degrades to a plain
+          vertical list - pinning four extra viewport heights is the wrong
+          trade on a phone. */}
       <section className="work" id="work">
         <div className="work-heading section-wrap reveal">
           <div>
@@ -769,15 +838,18 @@ function App() {
           <p>Five projects taken from an idea to working software - with the numbers that show they actually work.</p>
         </div>
 
-        <div className="pan-wrap">
-          <div className="pan-track">
+        <div className="stack-wrap">
+          <div className="stack-deck">
             {projects.map((project, index) => (
               <article className="project-card" key={project.name}>
                 <div className="project-card-core">
                   <div className="project-card-visual">
                     <ProjectVisual variant={project.visual} />
-                    <span className="project-card-index">{String(index + 1).padStart(2, '0')}</span>
                   </div>
+
+                  <span className="project-card-index">
+                    {String(index + 1).padStart(2, '0')} / {String(projects.length).padStart(2, '0')}
+                  </span>
 
                   <div className="project-card-body">
                     <p className="project-card-kicker">{project.kicker}</p>
@@ -818,7 +890,7 @@ function App() {
             ))}
           </div>
 
-          <div className="pan-progress" aria-hidden="true"><span /></div>
+          <div className="stack-progress" aria-hidden="true"><span /></div>
         </div>
       </section>
 
@@ -884,7 +956,7 @@ function App() {
           <h2>What I work with.</h2>
           <p>Certified where it counts, and hands-on with the rest through production work or shipped side projects.</p>
         </div>
-        <div className="skill-grid reveal">
+        <div className="skill-grid">
           {skillGroups.map((group) => (
             <div className="skill-group" key={group.title}>
               <h3>{group.title}</h3>
