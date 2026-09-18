@@ -1682,3 +1682,45 @@ html.has-custom-cursor button { cursor: none; }
 
   .hero-system { display: none; }
 }
+
+/* The contact block runs as two columns so the waving figure has the empty
+   right side to itself and sits on the same baseline as the email address.
+   Everything below the rule still spans the full width. */
+.contact-inner {
+  display: grid;
+  align-items: end;
+  gap: 0 clamp(24px, 4vw, 64px);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.contact-lead { grid-column: 1; grid-row: 1; }
+
+.contact-figure {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  width: auto;
+  height: clamp(280px, 30vw, 440px);
+  /* .contact-roles sits 64px below the lead column, so pulling the same amount
+     back puts his feet on that rule instead of leaving him hovering above it. */
+  margin-bottom: -64px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.contact-roles,
+.contact-bottom { grid-column: 1 / -1; }
+
+@media (max-width: 900px) {
+  /* One column: he goes under the address, centred and smaller, rather than
+     squeezing the headline into a ribbon. */
+  .contact-inner { grid-template-columns: 1fr; }
+  .contact-figure {
+    grid-column: 1;
+    grid-row: 2;
+    height: clamp(200px, 42vw, 280px);
+    justify-self: center;
+    margin: 28px 0 -64px;
+  }
+  .contact-roles, .contact-bottom { grid-column: 1; }
+}

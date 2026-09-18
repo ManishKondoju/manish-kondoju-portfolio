@@ -995,11 +995,24 @@ function App() {
 
       <section className="contact section-wrap" id="contact" data-cam="7">
         <div className="contact-inner reveal">
-          <p className="eyebrow"><span /> Start a conversation</p>
-          <h2>Have a complex system worth making reliable?</h2>
-          <a className="contact-email" href="mailto:kondoju.m@northeastern.edu">
-            kondoju.m@northeastern.edu <ArrowUpRight aria-hidden="true" />
-          </a>
+          <div className="contact-lead">
+            <p className="eyebrow"><span /> Start a conversation</p>
+            <h2>Have a complex system worth making reliable?</h2>
+            <a className="contact-email" href="mailto:kondoju.m@northeastern.edu">
+              kondoju.m@northeastern.edu <ArrowUpRight aria-hidden="true" />
+            </a>
+          </div>
+          {/* Decorative, and the address beside it is the real way to reach me. */}
+          <img
+            className="contact-figure"
+            src="/contact-figure.webp"
+            width={447}
+            height={900}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            decoding="async"
+          />
           <div className="contact-roles">
             <p>Open to</p>
             <ul>
