@@ -20,6 +20,7 @@ export function LoadingIntro() {
   const [visible, setVisible] = useState(
     () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   )
+  const [alphaBroken, setAlphaBroken] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const countRef = useRef<HTMLSpanElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -93,13 +94,37 @@ export function LoadingIntro() {
     if (document.readyState === 'complete') mark('load')
     else window.addEventListener('load', () => mark('load'), { once: true })
 
+    // Browsers disagree about transparent video: Safari decodes VP9 but drops
+    // the alpha layer, which paints the cut-out region solid black. Rather than
+    // predict engine behaviour, sample a corner pixel once a frame is decoded -
+    // if it came back opaque, alpha is not working here and the flat poster
+    // (subject already composited on the page colour) is used instead.
+    const verifyAlpha = (v: HTMLVideoElement) => {
+      try {
+        if (!v.videoWidth) return
+        const c = document.createElement('canvas')
+        c.width = v.videoWidth
+        c.height = v.videoHeight
+        const ctx = c.getContext('2d')
+        if (!ctx) return
+        ctx.drawImage(v, 0, 0)
+        const alpha = ctx.getImageData(4, 4, 1, 1).data[3]
+        if (alpha > 40) setAlphaBroken(true)
+      } catch {
+        // Tainted canvas or a decoder that refuses readback: leave the video be.
+      }
+    }
+
     const video = videoRef.current
     if (!video) {
       mark('video')
-    } else if (video.readyState >= 3) {
-      mark('video')
     } else {
-      video.addEventListener('canplay', () => mark('video'), { once: true })
+      const onReady = () => {
+        verifyAlpha(video)
+        mark('video')
+      }
+      if (video.readyState >= 3) onReady()
+      else video.addEventListener('canplay', onReady, { once: true })
       // A blocked or failed video must not hold the page hostage.
       video.addEventListener('error', () => mark('video'), { once: true })
       video.play().catch(() => mark('video'))
@@ -119,21 +144,28 @@ export function LoadingIntro() {
   return (
     <div className="loading-intro" ref={root} aria-hidden="true">
       <div className="loading-media">
-        {/* No src attribute - it would win over the <source> children and kill
-            the mp4 fallback for browsers without VP9. */}
-        <video
-          ref={videoRef}
-          className="loading-video"
-          poster="/preloader-poster.jpg"
-          muted
-          playsInline
-          autoPlay
-          loop
-          preload="auto"
-        >
-          <source src="/preloader.webm" type="video/webm" />
-          <source src="/preloader.mp4" type="video/mp4" />
-        </video>
+        {alphaBroken ? (
+          <img className="loading-video" src="/preloader-poster.jpg" alt="" />
+        ) : (
+          <video
+            ref={videoRef}
+            className="loading-video"
+            poster="/preloader-poster.jpg"
+            muted
+            playsInline
+            autoPlay
+            loop
+            preload="auto"
+          >
+            {/* HEVC first, and tagged with its codec so Safari matches it.
+                Safari decodes VP9 but ignores the alpha layer in WebM, so if
+                the .webm came first Safari would take it and paint the
+                transparent region black. Chrome and Firefox reject hvc1 and
+                fall through. */}
+            <source src="/preloader.mp4" type='video/mp4; codecs="hvc1"' />
+            <source src="/preloader.webm" type="video/webm" />
+          </video>
+        )}
       </div>
       <span className="loading-count">
         <span ref={countRef}>1</span>

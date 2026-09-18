@@ -1349,6 +1349,9 @@ html.has-custom-cursor button { cursor: none; }
   width: 100%;
   height: 100%;
   object-fit: contain;
+  /* Some engines paint a black backdrop behind a video element by default,
+     which shows through wherever the frame is transparent. */
+  background: transparent;
 }
 
 /* A soft ground shadow so the cut-out sits on the page rather than floating. */
